@@ -1,0 +1,10 @@
+<section class="page-content-modules page-home">
+  <div class="page-cards">
+    <ng-container *ngFor="let item of homeData.CARD">
+      <app-page-card
+        [card]="item"
+        (cardClicked)="onCardClicked($event)"
+      ></app-page-card>
+    </ng-container>
+  </div>
+</section>

@@ -1,0 +1,26 @@
+<div class="page-card">
+  <div
+    class="card-content"
+    [ngClass]="{ clickable: isClickableCard() && !card?.disabled }"
+    (click)="isClickableCard() && !card?.disabled && handleCardClick()"
+  >
+    <div class="icon-container">
+      <div class="icon">
+        <mat-icon>{{ card?.icon }}</mat-icon>
+      </div>
+    </div>
+    <div class="card-desc">
+      <span class="desc-head">{{ card?.title }}</span>
+      <span class="count">{{ card?.count }}</span>
+    </div>
+  </div>
+  <button
+    *ngIf="card?.button && card?.button?.hasPermession === true"
+    mat-raised-button
+    color="primary"
+    class="card-button"
+    (click)="navigateToAdd()"
+  >
+    {{ card?.button?.label }}
+  </button>
+</div>

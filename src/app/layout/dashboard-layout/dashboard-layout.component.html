@@ -1,0 +1,54 @@
+<section class="pages-content">
+  <div class="pages-sidebar">
+    <div>
+      <div class="siderbar-heading">
+        <div class="logo logoSidebar" [ngClass]="'default'">BillDashboard</div>
+        <div class="logo logoSidebar-sm">B</div>
+      </div>
+      <div class="pages-sidebar-item-list top">
+        <ul class="pages-sidebar-items">
+          <ng-container *ngFor="let item of pageDashboardLink">
+            <li class="pages-sidebar-item" 
+                [routerLink]="item.path" 
+                routerLinkActive="active"
+                [routerLinkActiveOptions]="{exact: false}">
+              <mat-icon>{{ item?.icon }}</mat-icon> 
+              <span class="sidebar-label">{{ item.label }}</span>
+            </li>
+          </ng-container>
+        </ul>
+      </div>
+    </div>
+    <div>
+      <div class="pages-sidebar-item-list bottom">
+        <ul class="pages-sidebar-items">
+          <ng-container *ngFor="let item of pageDashboardLinkBottom">
+            <li class="pages-sidebar-item" 
+                (click)="item.label === 'Sign Out' ? openSignOutModal() : null"
+                [routerLink]="item.label !== 'Sign Out' ? item.path : null" 
+                routerLinkActive="active">
+              <mat-icon>{{ item?.icon }}</mat-icon>
+              <span class="sidebar-label">{{ item.label }}</span>
+            </li>
+          </ng-container>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="page-content">
+    <div class="nav-bar">
+      <div class="nav-left">
+        <div class="admin-details">
+          <div class="admin-image">
+            <span style="font-size: larger">{{ name.charAt(0).toUpperCase() }}</span>
+          </div>
+          <div class="admin-name">
+            <span>{{ name | titlecase }}</span>
+            <span class="sub-detail">{{ email }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <router-outlet></router-outlet>
+  </div>
+</section>

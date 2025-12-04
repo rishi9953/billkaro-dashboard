@@ -1,0 +1,268 @@
+@use '@angular/material' as mat;
+
+$sidebar-width: 277px;
+$page-background: #f5f5f7;
+$sidebar-navbar-zindex: 9999;
+$modal-zindex: 99999;
+
+section {
+  &.pages-content {
+    background-color: $page-background;
+    width: 100vw;
+    height: 100vh;
+    
+    .pages-sidebar {
+      position: fixed;
+      z-index: $sidebar-navbar-zindex;
+      top: 0;
+      left: 0;
+      width: $sidebar-width;
+      background-color: white;
+      border-right: 1px solid rgba(0, 0, 0, 0.1);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      
+      &>div:first-child {
+        height: calc(100% - 70px);
+      }
+      
+      .siderbar-heading {
+        display: flex;
+        justify-content: center;
+        padding: 22px 0;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+      }
+      
+      .pages-sidebar-item-list {
+        &.top {
+          height: calc(100% - 160px);
+          overflow-y: auto;
+          padding: 20px 0;
+        }
+        
+        &.bottom {
+          background-color: white;
+          border-top: 1px solid rgba(0, 0, 0, 0.1);
+          padding: 10px 0;
+        }
+        
+        width: 100%;
+        
+        .pages-sidebar-items {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          padding: 0 10px;
+          
+          .pages-sidebar-item {
+            font-weight: 500;
+            font-size: 14px;
+            line-height: 20px;
+            transition: all 0.2s ease-in-out;
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            color: #666;
+            
+            .mat-icon {
+              margin-right: 12px;
+              font-size: 20px;
+              width: 20px;
+              height: 20px;
+            }
+            
+            .sidebar-label {
+              font-weight: 500;
+              font-size: 14px;
+              line-height: 20px;
+            }
+            
+            &.active {
+              background-color: #e8e8ff;
+              color: #5a67d8;
+              font-weight: 600;
+              
+              .mat-icon {
+                color: #5a67d8;
+              }
+            }
+            
+            &:hover {
+              background-color: #f0f0f0;
+              color: #333;
+            }
+          }
+        }
+      }
+    }
+    
+    .page-content {
+      background-color: $page-background;
+      margin-left: $sidebar-width;
+      padding: 90px 21px 0;
+      min-height: 100vh;
+      
+      .nav-bar {
+        z-index: $sidebar-navbar-zindex;
+        background-color: white;
+        padding: 16px 32px;
+        position: fixed;
+        top: 0;
+        width: calc(100% - $sidebar-width);
+        left: $sidebar-width;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        
+        .nav-left {
+          width: 100%;
+          display: flex;
+          justify-content: flex-end;
+          align-items: center;
+          color: #333;
+          gap: 20px;
+          
+          .admin-details {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding-right: 50px;
+            
+            .admin-image {
+              width: 40px;
+              height: 40px;
+              border-radius: 12px;
+              background-color: #5a67d8;
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              border: 2px solid #e8e8ff;
+              color: white;
+              font-weight: 600;
+              font-size: 16px;
+            }
+            
+            .admin-name {
+              span {
+                display: block;
+                font-size: 14px;
+                font-weight: 500;
+                line-height: 20px;
+                color: #333;
+                
+                &.sub-detail {
+                  font-size: 12px;
+                  color: #666;
+                  line-height: 16px;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+.logoSidebar {
+  font-size: 24px;
+  font-weight: 700;
+  color: #5a67d8;
+}
+
+.logoSidebar-sm {
+  display: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #5a67d8;
+  color: white;
+  font-weight: 700;
+  font-size: 20px;
+  align-items: center;
+  justify-content: center;
+}
+
+.signout-confirm-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: $modal-zindex;
+  
+  .modal-content {
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    width: 400px;
+    max-width: 90%;
+    
+    h1 {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 24px;
+      margin-top: 0;
+      color: #333;
+      text-align: center;
+    }
+    
+    .button-group {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      
+      button {
+        padding: 10px 24px;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        cursor: pointer;
+        transition: background 0.3s ease;
+        font-weight: 500;
+        
+        &:first-child {
+          background-color: #ef4444;
+          color: white;
+          
+          &:hover {
+            background-color: #dc2626;
+          }
+        }
+        
+        &:last-child {
+          background-color: #e5e7eb;
+          color: #333;
+          
+          &:hover {
+            background-color: #d1d5db;
+          }
+        }
+      }
+    }
+  }
+}
+.pages-sidebar-item-list.top {
+  scrollbar-width: thin;
+  scrollbar-color: #c1c1c1 transparent;
+  
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background-color: #c1c1c1;
+    border-radius: 3px;
+  }
+}
