@@ -2,17 +2,18 @@
   <div class="pages-sidebar">
     <div>
       <div class="siderbar-heading">
-        <div class="logo logoSidebar" [ngClass]="'default'">BillDashboard</div>
-        <div class="logo logoSidebar-sm">B</div>
+        <div class="logo logoSidebar" [ngClass]="'default'">
+          <img src="assets/images/logo.jpeg" alt="BillKaro" />
+        </div>
+
       </div>
+
       <div class="pages-sidebar-item-list top">
         <ul class="pages-sidebar-items">
           <ng-container *ngFor="let item of pageDashboardLink">
-            <li class="pages-sidebar-item" 
-                [routerLink]="item.path" 
-                routerLinkActive="active"
-                [routerLinkActiveOptions]="{exact: false}">
-              <mat-icon>{{ item?.icon }}</mat-icon> 
+            <li class="pages-sidebar-item" [routerLink]="item.path" routerLinkActive="active"
+              [routerLinkActiveOptions]="{exact: false}">
+              <mat-icon>{{ item?.icon }}</mat-icon>
               <span class="sidebar-label">{{ item.label }}</span>
             </li>
           </ng-container>
@@ -23,10 +24,8 @@
       <div class="pages-sidebar-item-list bottom">
         <ul class="pages-sidebar-items">
           <ng-container *ngFor="let item of pageDashboardLinkBottom">
-            <li class="pages-sidebar-item" 
-                (click)="item.label === 'Sign Out' ? openSignOutModal() : null"
-                [routerLink]="item.label !== 'Sign Out' ? item.path : null" 
-                routerLinkActive="active">
+            <li class="pages-sidebar-item" (click)="item.label === 'Sign Out' ? openSignOutModal() : null"
+              [routerLink]="item.label !== 'Sign Out' ? item.path : null" routerLinkActive="active">
               <mat-icon>{{ item?.icon }}</mat-icon>
               <span class="sidebar-label">{{ item.label }}</span>
             </li>

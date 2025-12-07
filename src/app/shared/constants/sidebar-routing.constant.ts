@@ -9,7 +9,15 @@ export const SIDEBAR_ROUTING: NavItemLinkType[] = [
     accessName: 'DASHBOARD',
   },
 
- 
+
+  {
+    label: 'Users',
+    icon: '',
+    path: PAGE_URL.HOME,
+    accessName: 'USERS',
+  },
+
+
 
 
 ];
