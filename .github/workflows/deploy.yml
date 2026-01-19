@@ -43,6 +43,9 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v4
 
+      - name: Add .nojekyll file
+        run: touch dist/billkaro-dashboard/browser/.nojekyll
+      
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
