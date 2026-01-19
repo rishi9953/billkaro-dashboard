@@ -41,6 +41,7 @@
           },
           "configurations": {
             "production": {
+              "baseHref": "/billkaro-dashboard/",
               "budgets": [
                 {
                   "type": "initial",
