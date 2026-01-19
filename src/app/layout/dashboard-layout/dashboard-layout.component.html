@@ -1,18 +1,26 @@
 <section class="pages-content">
-  <div class="pages-sidebar">
+  <!-- Mobile Sidebar Overlay -->
+  <div class="sidebar-overlay" *ngIf="sidebarOpen" (click)="closeSidebar()"></div>
+
+  <div class="pages-sidebar" [class.open]="sidebarOpen">
     <div>
       <div class="siderbar-heading">
         <div class="logo logoSidebar" [ngClass]="'default'">
-          <img src="assets/images/logo.jpeg" alt="BillKaro" />
+          <img src="assets/images/logo.jpeg" alt="BillKaro" onerror="this.style.display='none'" />
         </div>
-
+        <button class="close-sidebar-btn" (click)="closeSidebar()" aria-label="Close sidebar">
+          <mat-icon>close</mat-icon>
+        </button>
       </div>
 
       <div class="pages-sidebar-item-list top">
         <ul class="pages-sidebar-items">
           <ng-container *ngFor="let item of pageDashboardLink">
-            <li class="pages-sidebar-item" [routerLink]="item.path" routerLinkActive="active"
-              [routerLinkActiveOptions]="{exact: false}">
+            <li class="pages-sidebar-item"
+                [routerLink]="item.path"
+                routerLinkActive="active"
+                [routerLinkActiveOptions]="{exact: false}"
+                (click)="navigateToRoute(item.path)">
               <mat-icon>{{ item?.icon }}</mat-icon>
               <span class="sidebar-label">{{ item.label }}</span>
             </li>
@@ -36,10 +44,16 @@
   </div>
   <div class="page-content">
     <div class="nav-bar">
+      <button class="mobile-menu-btn" (click)="toggleSidebar()" aria-label="Toggle menu" type="button">
+        <mat-icon aria-hidden="true">menu</mat-icon>
+      </button>
+      <div class="nav-center">
+        <h2 class="page-title-nav">{{ currentPageTitle }}</h2>
+      </div>
       <div class="nav-left">
         <div class="admin-details">
           <div class="admin-image">
-            <span style="font-size: larger">{{ name.charAt(0).toUpperCase() }}</span>
+            <span>{{ name.charAt(0).toUpperCase() }}</span>
           </div>
           <div class="admin-name">
             <span>{{ name | titlecase }}</span>

@@ -13,8 +13,16 @@ export const SIDEBAR_ROUTING: NavItemLinkType[] = [
   {
     label: 'Users',
     icon: '',
-    path: PAGE_URL.HOME,
+    path: PAGE_URL.USERS,
     accessName: 'USERS',
+  },
+
+
+  {
+    label: 'Subscriptions',
+    icon: '',
+    path: PAGE_URL.SUBSCRIPTIONS,
+    accessName: 'SUBSCRIPTIONS',
   },
 
 

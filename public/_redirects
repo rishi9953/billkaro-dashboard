@@ -1,0 +1,6 @@
+# Proxy API requests (must come before SPA fallback)
+/api/*  https://65.2.81.212/api/:splat  200!
+
+# SPA fallback for Angular routes
+/*      /index.html                  200
+

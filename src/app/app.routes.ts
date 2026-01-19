@@ -1,7 +1,8 @@
 import { Routes } from '@angular/router';
 import { DashboardLayoutComponent } from './layout/dashboard-layout/dashboard-layout.component';
+
 export const routes: Routes = [
-  { path: '', pathMatch: 'full', redirectTo: '/dashboard' },
+  { path: '', pathMatch: 'full', redirectTo: '/dashboard/home' },
 
   {
     path: '',
@@ -14,7 +15,13 @@ export const routes: Routes = [
             (m) => m.DASHBOARD_ROUTES
           ),
       },
+      {
+        path: 'subscriptions',
+        loadComponent: () =>
+          import('./subscriptions/subscriptions-list.component').then(
+            (m) => m.SubscriptionsListComponent
+          ),
+      },
     ],
   },
-
 ];

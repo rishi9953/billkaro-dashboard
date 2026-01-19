@@ -1,0 +1,161 @@
+<div class="dialog-container">
+  <div class="dialog-header">
+    <h2 class="dialog-title">Create Subscription Plan</h2>
+    <button mat-icon-button class="close-btn" (click)="closeDialog()" aria-label="Close dialog">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <div class="dialog-content">
+    <form [formGroup]="subscriptionForm" (ngSubmit)="onSubmit()">
+      <!-- Plan Details Section -->
+      <div class="form-card">
+        <div class="form-group">
+          <label for="title">Title *</label>
+          <input
+            type="text"
+            id="title"
+            formControlName="title"
+            placeholder="Enter Plan Title (e.g., Software + Printer)"
+            [class.error]="submitted && f['title'].errors">
+          <div class="error-message" *ngIf="submitted && f['title'].errors">
+            <span *ngIf="f['title'].errors['required']">Title is required</span>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="price">Price (Original) *</label>
+            <input
+              type="number"
+              id="price"
+              formControlName="price"
+              placeholder="Enter Original Price"
+              min="0"
+              step="0.01"
+              [class.error]="submitted && f['price'].errors">
+            <div class="error-message" *ngIf="submitted && f['price'].errors">
+              <span *ngIf="f['price'].errors['required']">Original price is required</span>
+              <span *ngIf="f['price'].errors['min']">Price must be 0 or greater</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="discountedPrice">Discounted Price *</label>
+            <input
+              type="number"
+              id="discountedPrice"
+              formControlName="discountedPrice"
+              placeholder="Enter Discounted Price"
+              min="0"
+              step="0.01"
+              [class.error]="submitted && f['discountedPrice'].errors">
+            <div class="error-message" *ngIf="submitted && f['discountedPrice'].errors">
+              <span *ngIf="f['discountedPrice'].errors['required']">Discounted price is required</span>
+              <span *ngIf="f['discountedPrice'].errors['min']">Price must be 0 or greater</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="subtitle">Subtitle *</label>
+          <input
+            type="text"
+            id="subtitle"
+            formControlName="subtitle"
+            placeholder="Enter Subtitle (e.g., 1 Year Software + Printer)"
+            [class.error]="submitted && f['subtitle'].errors">
+          <div class="error-message" *ngIf="submitted && f['subtitle'].errors">
+            <span *ngIf="f['subtitle'].errors['required']">Subtitle is required</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="rating">Rating (Optional)</label>
+          <input
+            type="number"
+            id="rating"
+            formControlName="rating"
+            placeholder="Enter Rating (0-5)"
+            min="0"
+            max="5"
+            step="0.1">
+          <div class="error-message" *ngIf="submitted && f['rating'].errors">
+            <span *ngIf="f['rating'].errors['min'] || f['rating'].errors['max']">Rating must be between 0 and 5</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input
+              type="checkbox"
+              id="showImage"
+              formControlName="showImage">
+            <span>Show Image</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Bullet Points Section -->
+      <div class="form-card">
+        <h3 class="section-heading">Includes (Bullet Points) *</h3>
+        
+        <div *ngFor="let bulletControl of bulletPointsFormArray.controls; let i = index" class="bullet-point-item">
+          <div class="form-group">
+            <label [for]="'bullet_' + i">Bullet Point {{ i + 1 }}</label>
+            <div class="bullet-input-wrapper">
+              <input
+                type="text"
+                [id]="'bullet_' + i"
+                [formControl]="getBulletPointControl(i)"
+                [placeholder]="'Enter feature ' + (i + 1) + ' (e.g., Super fast billing)'"
+                [class.error]="submitted && getBulletPointControl(i).errors">
+              <button
+                *ngIf="bulletPointsFormArray.length > 1"
+                type="button"
+                class="remove-bullet-btn"
+                (click)="removeBulletPoint(i)"
+                title="Remove this bullet point">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M18 6L6 18M6 6l12 12"/>
+                </svg>
+              </button>
+            </div>
+            <div class="error-message" *ngIf="submitted && getBulletPointControl(i).errors">
+              <span>This bullet point is required</span>
+            </div>
+          </div>
+        </div>
+
+        <button type="button" class="add-bullet-btn" (click)="addBulletPoint()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 5v14M5 12h14"/>
+          </svg>
+          Add Bullet Point
+        </button>
+      </div>
+
+      <!-- Error Message -->
+      <div class="error-message" *ngIf="error" style="margin-bottom: 20px; padding: 15px; background-color: #fee2e2; border-radius: 8px;">
+        {{ error }}
+      </div>
+
+      <!-- Success Message -->
+      <div class="success-message" *ngIf="success" style="margin-bottom: 20px; padding: 15px; background-color: #d1fae5; border-radius: 8px; color: #065f46;">
+        Subscription plan created successfully!
+      </div>
+
+      <!-- Submit Button -->
+      <div class="form-actions">
+        <button type="button" mat-button (click)="closeDialog()">Cancel</button>
+        <button type="submit" mat-raised-button color="primary" [disabled]="loading">
+          <span *ngIf="!loading">Create Plan</span>
+          <span *ngIf="loading">Creating...</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+

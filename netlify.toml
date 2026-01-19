@@ -1,0 +1,24 @@
+[build]
+  command = "npm run build"
+  publish = "dist/billkaro-dashboard/browser"
+
+[[redirects]]
+  # Proxy API requests to the backend server - must come before SPA fallback
+  from = "/api/*"
+  to = "https://65.2.81.212/api/:splat"
+  status = 200
+  force = true
+  # Add headers to help with backend communication
+  headers = {X-From = "Netlify", X-Forwarded-Proto = "https"}
+
+[[redirects]]
+  # SPA fallback - must be last (won't match /api/* because above rule matches first)
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[build.environment]
+  NODE_VERSION = "20"
+
+
+

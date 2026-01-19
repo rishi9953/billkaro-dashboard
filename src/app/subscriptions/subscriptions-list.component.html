@@ -1,0 +1,71 @@
+<div class="subscriptions-list-container">
+  <div class="subscriptions-header">
+    <h1 class="page-title">Subscription Plans</h1>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-container">
+    <div class="loading-spinner"></div>
+    <p>Loading subscription plans...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error && !loading" class="error-container">
+    <mat-icon class="error-icon">error_outline</mat-icon>
+    <p class="error-message">{{ error }}</p>
+    <button class="retry-btn" (click)="fetchSubscriptionPlans()">Retry</button>
+  </div>
+
+  <!-- Subscription Plans Grid -->
+  <div *ngIf="!loading && !error" class="subscriptions-grid">
+    <div *ngIf="subscriptionPlans.length === 0" class="empty-state">
+      <mat-icon>subscriptions</mat-icon>
+      <p>No subscription plans found</p>
+      <p class="empty-subtitle">Click the + button to create your first subscription plan</p>
+    </div>
+
+    <div *ngFor="let plan of subscriptionPlans" class="subscription-card">
+      <div class="card-header">
+        <h3 class="plan-title">{{ plan.title }}</h3>
+        <span class="plan-badge" *ngIf="plan.showImage">Image</span>
+      </div>
+      
+      <div class="card-body">
+        <p class="plan-subtitle">{{ plan.subtitle }}</p>
+        
+        <div class="price-section">
+          <div class="price-row">
+            <span class="price-label">Original Price:</span>
+            <span class="original-price">{{ formatPrice(plan.price) }}</span>
+          </div>
+          <div class="price-row">
+            <span class="price-label">Discounted Price:</span>
+            <span class="discounted-price">{{ formatPrice(plan.discountedPrice) }}</span>
+          </div>
+          <div class="discount-badge">
+            Save {{ formatPrice(plan.price - plan.discountedPrice) }}
+          </div>
+        </div>
+
+        <div class="bullet-points-section">
+          <h4 class="features-title">Features:</h4>
+          <ul class="bullet-points-list">
+            <li *ngFor="let point of plan.bulletPoints">{{ point }}</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="card-footer">
+        <span class="created-date">Created: {{ formatDate(plan.createdAt) }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating Action Button -->
+  <button class="fab" (click)="openCreateDialog()" aria-label="Create new subscription plan">
+    <mat-icon>add</mat-icon>
+  </button>
+</div>
+
+
+

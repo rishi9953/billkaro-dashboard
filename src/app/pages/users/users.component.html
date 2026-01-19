@@ -1,0 +1,79 @@
+<div class="users-container">
+  <div class="users-header">
+    <h1 class="page-title">Users Management</h1>
+    <button class="refresh-btn" (click)="refreshUsers()" [disabled]="loading">
+      <mat-icon>refresh</mat-icon>
+      <span>Refresh</span>
+    </button>
+  </div>
+
+  <!-- <div *ngIf="loading" class="loading-container">
+    <div class="loading-spinner"></div>
+    <p>Loading users...</p>
+  </div> -->
+
+  <div *ngIf="error && !loading" class="error-container">
+    <mat-icon class="error-icon">error_outline</mat-icon>
+    <p class="error-message">{{ error }}</p>
+    <button class="retry-btn" (click)="fetchUsers()">Retry</button>
+  </div>
+
+  <div *ngIf="!loading && !error" class="users-content">
+    <div *ngIf="users.length === 0" class="empty-state">
+      <mat-icon>people_outline</mat-icon>
+      <p>No users found</p>
+    </div>
+
+    <div *ngIf="users.length > 0" class="users-table-container">
+      <table class="users-table">
+        <thead>
+          <tr>
+            <th>Business Name</th>
+            <th>Email</th>
+            <th>Mobile</th>
+            <th>City</th>
+            <th>State</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let user of users">
+            <td>
+              <div class="business-info">
+                <strong>{{ getBusinessName(user) }}</strong>
+                <span *ngIf="user.brandName" class="brand-name">{{ user.brandName }}</span>
+                <span *ngIf="getOutletCount(user) > 1" class="outlet-count">{{ getOutletCount(user) }} outlets</span>
+              </div>
+            </td>
+            <td>{{ user.email }}</td>
+            <td>{{ user.mobile }}</td>
+            <td>{{ user.city || 'N/A' }}</td>
+            <td>{{ user.state || 'N/A' }}</td>
+            <td>
+              <span [class]="'status-badge ' + getStatusClass(user.activate)">
+                {{ getStatusText(user.activate) }}
+              </span>
+            </td>
+            <td>
+              <button
+                class="action-btn"
+                [class]="user.activate ? 'deactivate-btn' : 'activate-btn'"
+                (click)="toggleUserStatus(user)">
+                <!-- <mat-icon>{{ user.activate ? 'block' : 'check_circle' }}</mat-icon> -->
+                <span>{{ user.activate ? 'Deactivate' : 'Activate' }}</span>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div *ngIf="users.length > 0" class="users-summary">
+      <p>Total Users: <strong>{{ totalUsers }}</strong></p>
+      <p>Active Users: <strong>{{ activeUsers }}</strong></p>
+      <p>Pending Users: <strong>{{ pendingUsers }}</strong></p>
+    </div>
+  </div>
+</div>
+

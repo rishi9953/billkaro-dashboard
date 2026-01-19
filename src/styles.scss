@@ -1,1 +1,48 @@
 /* You can add global styles to this file, and also import other style files */
+
+/* Angular Material Theme - Required for Material components to render */
+@use '@angular/material' as mat;
+
+@include mat.core();
+
+/* Define a basic theme */
+$light-theme: mat.define-theme((
+  color: (
+    theme-type: light,
+    primary: mat.$azure-palette,
+    tertiary: mat.$blue-palette,
+  ),
+  typography: (
+    brand-family: 'Roboto',
+    plain-family: 'Roboto',
+  ),
+  density: (
+    scale: 0
+  )
+));
+
+@include mat.all-component-themes($light-theme);
+
+/* Global base styles */
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+}
+
+body {
+  font-family: 'Roboto', sans-serif;
+}
+
+/* Material Dialog Custom Styles */
+.subscription-dialog {
+  .mat-mdc-dialog-container {
+    padding: 0;
+  }
+  
+  .mat-mdc-dialog-surface {
+    border-radius: 12px;
+    overflow: hidden;
+  }
+}

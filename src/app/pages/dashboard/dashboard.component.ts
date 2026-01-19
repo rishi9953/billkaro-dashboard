@@ -1,10 +1,12 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { HttpClient, HttpClientModule } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { MatIconModule } from '@angular/material/icon';
+import { Subject } from 'rxjs';
 import { PageCardComponent } from '../../shared/components/page-card/page-card.component';
 import { HOME_DATA } from '../../shared/data/home-data';
 import { PageCardType } from '../../shared/types/dashboard.types';
+import { API_ENDPOINTS } from '../../utilities/constant/api-url.constant';
 
 interface User {
   id: string;
@@ -48,25 +50,39 @@ interface ApiResponse {
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, HttpClientModule, MatIconModule, PageCardComponent],
+  imports: [CommonModule, MatIconModule, PageCardComponent],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.scss']
 })
-export class DashboardComponent implements OnInit {
+export class DashboardComponent implements OnInit, OnDestroy {
   homeData = { CARD: [...HOME_DATA.CARD] };
-  private apiUrl = 'https://65.2.81.212/api/users';
+  private apiUrl = API_ENDPOINTS.USERS;
+  private destroy$ = new Subject<void>();
 
-  constructor(private http: HttpClient) {}
+  constructor(
+    private http: HttpClient,
+    private cdr: ChangeDetectorRef
+  ) {}
 
   ngOnInit(): void {
     this.fetchUserData();
   }
 
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
   fetchUserData(): void {
+    console.log('Fetching dashboard data from:', this.apiUrl);
     this.http.get<ApiResponse>(this.apiUrl).subscribe({
       next: (response) => {
+        console.log('Dashboard API response:', response);
         if (response.status === 'success' && response.data) {
           this.updateCardData(response.data);
+        } else {
+          console.warn('Invalid response format:', response);
+          this.updateCardData([]);
         }
       },
       error: (error) => {
@@ -82,24 +98,31 @@ export class DashboardComponent implements OnInit {
     const activeUsers = users.filter(user => user.activate).length;
     const pendingUsers = users.filter(user => !user.activate).length;
 
-    this.homeData.CARD = this.homeData.CARD.map((card: PageCardType) => {
-      switch (card.title) {
-        case 'Total Users':
-          return { ...card, count: totalUsers.toString() };
-        case 'Total Customers':
-          return { ...card, count: activeUsers.toString() };
-        case 'Pending Requests':
-          return { ...card, count: pendingUsers.toString() };
-        case 'Inventory Items':
-          return { ...card, count: '0' }; // Update when you have inventory data
-        case 'Total Revenue':
-          return { ...card, count: '₹0' }; // Update when you have revenue data
-        case 'Monthly Revenue':
-          return { ...card, count: '₹0' }; // Update when you have revenue data
-        default:
-          return card;
-      }
-    });
+    // Create a new object to ensure change detection
+    this.homeData = {
+      CARD: this.homeData.CARD.map((card: PageCardType) => {
+        switch (card.title) {
+          case 'Total Users':
+            return { ...card, count: totalUsers.toString() };
+          case 'Total Customers':
+            return { ...card, count: activeUsers.toString() };
+          case 'Pending Requests':
+            return { ...card, count: pendingUsers.toString() };
+          case 'Inventory Items':
+            return { ...card, count: '0' }; // Update when you have inventory data
+          case 'Total Revenue':
+            return { ...card, count: '₹0' }; // Update when you have revenue data
+          case 'Monthly Revenue':
+            return { ...card, count: '₹0' }; // Update when you have revenue data
+          default:
+            return card;
+        }
+      })
+    };
+    
+    // Force change detection
+    this.cdr.detectChanges();
+    console.log('Dashboard data updated:', this.homeData);
   }
 
   onCardClicked(title: string): void {
