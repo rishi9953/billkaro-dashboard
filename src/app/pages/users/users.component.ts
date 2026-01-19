@@ -85,7 +85,7 @@ export class UsersComponent implements OnInit, OnDestroy {
 
     this.http.get<ApiResponse>(this.apiUrl, { observe: 'response' }).subscribe({
       next: (response) => {
-        console.log('Users API response:', response);
+        console.log('Users API response: here', response);
         this.loading = false;
         if (response.body && response.body.status === 'success' && response.body.data) {
           this.users = response.body.data;
@@ -100,7 +100,7 @@ export class UsersComponent implements OnInit, OnDestroy {
       error: (error) => {
         this.loading = false;
         console.error('Error fetching users:', error);
-        
+
         // Provide more detailed error messages
         if (error.status === 502) {
           this.error = '502 Bad Gateway: The backend server is not responding. Please check if the API server at https://65.2.81.212 is running and accessible.';
