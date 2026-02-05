@@ -57,6 +57,9 @@
 
       <div class="card-footer">
         <span class="created-date">Created: {{ formatDate(plan.createdAt) }}</span>
+        <button class="edit-btn" (click)="openEditDialog(plan)" aria-label="Edit subscription plan" title="Edit plan">
+          <mat-icon>edit</mat-icon>
+        </button>
       </div>
     </div>
   </div>

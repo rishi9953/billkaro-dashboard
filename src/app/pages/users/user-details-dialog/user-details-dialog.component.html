@@ -1,0 +1,162 @@
+<div class="dialog-container">
+  <div class="dialog-header">
+    <h2 class="dialog-title">User Details</h2>
+    <button mat-icon-button class="close-btn" (click)="close()" aria-label="Close">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <div class="dialog-content">
+    <!-- Profile Section -->
+    <section class="details-section">
+      <h3 class="section-title">
+        <mat-icon>person</mat-icon>
+        Profile
+      </h3>
+      <div class="profile-image-row">
+        <div class="user-profile-image" [class.has-image]="user.image && !imageLoadFailed">
+          <img *ngIf="user.image && !imageLoadFailed" [src]="user.image" [alt]="getFullName()" (error)="imageLoadFailed = true" />
+          <mat-icon *ngIf="!user.image || imageLoadFailed" class="profile-image-placeholder">person</mat-icon>
+        </div>
+        <div class="profile-image-caption">{{ getFullName() }}</div>
+      </div>
+      <div class="details-grid">
+        <div class="detail-item">
+          <span class="detail-label">Name</span>
+          <span class="detail-value">{{ getFullName() }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Brand Name</span>
+          <span class="detail-value">{{ display(user.brandName) }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Email</span>
+          <span class="detail-value">{{ display(user.email) }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Mobile</span>
+          <span class="detail-value">{{ display(user.mobile) }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Title</span>
+          <span class="detail-value">{{ display(user.title) }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Status</span>
+          <span class="detail-value">
+            <span class="status-badge" [class.active]="user.activate" [class.pending]="!user.activate">
+              {{ user.activate ? 'Active' : 'Pending' }}
+            </span>
+          </span>
+        </div>
+        <div class="detail-item full-width">
+          <span class="detail-label">Address</span>
+          <span class="detail-value">{{ display(user.address) }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">City</span>
+          <span class="detail-value">{{ display(user.city) }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">State</span>
+          <span class="detail-value">{{ display(user.state) }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Zipcode</span>
+          <span class="detail-value">{{ display(user.zipcode) }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Country</span>
+          <span class="detail-value">{{ display(user.country) }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Created</span>
+          <span class="detail-value">{{ formatDate(user.createdAt) }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Last Updated</span>
+          <span class="detail-value">{{ formatDate(user.updatedAt) }}</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Outlets Section -->
+    <section class="details-section" *ngIf="outlets.length > 0">
+      <h3 class="section-title">
+        <mat-icon>store</mat-icon>
+        Outlets ({{ outlets.length }})
+      </h3>
+      <div class="outlet-cards">
+        <div *ngFor="let outlet of outlets; let i = index" class="outlet-card">
+          <h4 class="outlet-name">Outlet {{ outlets.length > 1 ? i + 1 : '' }}: {{ display(outlet.businessName) }}</h4>
+          <div class="details-grid">
+            <div class="detail-item">
+              <span class="detail-label">Business Type</span>
+              <span class="detail-value">{{ display(outlet.businessType) }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Category</span>
+              <span class="detail-value">{{ display(outlet.businessCategory) }}</span>
+            </div>
+            <div class="detail-item full-width">
+              <span class="detail-label">Outlet Address</span>
+              <span class="detail-value">{{ display(outlet.outletAddress) }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Phone</span>
+              <span class="detail-value">{{ display(outlet.phoneNumber) }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">UPI ID</span>
+              <span class="detail-value">{{ display(outlet.upiId) }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Tax Slab</span>
+              <span class="detail-value">{{ display(outlet.taxSlab) }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Seating Capacity</span>
+              <span class="detail-value">{{ display(outlet.seatingCapacity) }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Outlet Age</span>
+              <span class="detail-value">{{ display(outlet.outletAge) }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">GSTIN</span>
+              <span class="detail-value">{{ display(outlet.gstinNumber) }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">FSSAI</span>
+              <span class="detail-value">{{ display(outlet.fssaiNumber) }}</span>
+            </div>
+            <div class="detail-item full-width" *ngIf="outlet.googleProfileLink">
+              <span class="detail-label">Google Profile</span>
+              <span class="detail-value link"><a [href]="outlet.googleProfileLink" target="_blank" rel="noopener">{{ outlet.googleProfileLink }}</a></span>
+            </div>
+            <div class="detail-item full-width" *ngIf="outlet.swiggyLink">
+              <span class="detail-label">Swiggy Link</span>
+              <span class="detail-value link"><a [href]="outlet.swiggyLink" target="_blank" rel="noopener">{{ outlet.swiggyLink }}</a></span>
+            </div>
+            <div class="detail-item full-width" *ngIf="outlet.zomatoLink">
+              <span class="detail-label">Zomato Link</span>
+              <span class="detail-value link"><a [href]="outlet.zomatoLink" target="_blank" rel="noopener">{{ outlet.zomatoLink }}</a></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="details-section" *ngIf="outlets.length === 0">
+      <h3 class="section-title">
+        <mat-icon>store</mat-icon>
+        Outlets
+      </h3>
+      <p class="no-outlets">No outlet data for this user.</p>
+    </section>
+
+    <div class="dialog-actions">
+      <button mat-raised-button color="primary" (click)="close()">Close</button>
+    </div>
+  </div>
+</div>

@@ -28,6 +28,7 @@
       <table class="users-table">
         <thead>
           <tr>
+            <th>User</th>
             <th>Business Name</th>
             <th>Email</th>
             <th>Mobile</th>
@@ -39,6 +40,12 @@
         </thead>
         <tbody>
           <tr *ngFor="let user of users">
+            <td class="user-avatar-cell">
+              <div class="user-avatar" [class.has-image]="user.image && !userImageFailed.has(user.id)">
+                <img *ngIf="user.image && !userImageFailed.has(user.id)" [src]="user.image" [alt]="getFullName(user)" (error)="onUserImageError(user)" />
+                <mat-icon *ngIf="!user.image || userImageFailed.has(user.id)" class="avatar-placeholder">person</mat-icon>
+              </div>
+            </td>
             <td>
               <div class="business-info">
                 <strong>{{ getBusinessName(user) }}</strong>
@@ -56,13 +63,21 @@
               </span>
             </td>
             <td>
-              <button
-                class="action-btn"
-                [class]="user.activate ? 'deactivate-btn' : 'activate-btn'"
-                (click)="toggleUserStatus(user)">
-                <!-- <mat-icon>{{ user.activate ? 'block' : 'check_circle' }}</mat-icon> -->
-                <span>{{ user.activate ? 'Deactivate' : 'Activate' }}</span>
-              </button>
+              <div class="actions-cell">
+                <button
+                  class="action-btn view-btn"
+                  (click)="openUserDetails(user)"
+                  title="View full details">
+                  <mat-icon>visibility</mat-icon>
+                  <span>View</span>
+                </button>
+                <button
+                  class="action-btn"
+                  [class]="user.activate ? 'deactivate-btn' : 'activate-btn'"
+                  (click)="toggleUserStatus(user)">
+                  <span>{{ user.activate ? 'Deactivate' : 'Activate' }}</span>
+                </button>
+              </div>
             </td>
           </tr>
         </tbody>

@@ -1,0 +1,68 @@
+<div class="auth-page">
+  <div class="auth-card">
+    <div class="auth-header">
+      <h1>Admin Signup</h1>
+      <p>Create an admin account</p>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <div class="field">
+        <label for="name">Name</label>
+        <input id="name" type="text" formControlName="name" placeholder="Admin name" />
+        <div class="hint error" *ngIf="f.name.touched && f.name.errors">
+          <span *ngIf="f.name.errors['required']">Name is required</span>
+          <span *ngIf="f.name.errors['minlength']">Minimum 2 characters</span>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="email">Email</label>
+        <input id="email" type="email" formControlName="email" placeholder="admin@example.com" />
+        <div class="hint error" *ngIf="f.email.touched && f.email.errors">
+          <span *ngIf="f.email.errors['required']">Email is required</span>
+          <span *ngIf="f.email.errors['email']">Enter a valid email</span>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="password">Password</label>
+        <input id="password" type="password" formControlName="password" placeholder="Minimum 6 characters" />
+        <div class="hint error" *ngIf="f.password.touched && f.password.errors">
+          <span *ngIf="f.password.errors['required']">Password is required</span>
+          <span *ngIf="f.password.errors['minlength']">Minimum 6 characters</span>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="address">Address</label>
+        <input id="address" type="text" formControlName="address" placeholder="Full address" />
+        <div class="hint error" *ngIf="f.address.touched && f.address.errors">
+          <span *ngIf="f.address.errors['required']">Address is required</span>
+          <span *ngIf="f.address.errors['minlength']">Minimum 5 characters</span>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="phoneNumber">Phone Number</label>
+        <input id="phoneNumber" type="tel" formControlName="phoneNumber" placeholder="+1 555 123 4567" />
+        <div class="hint error" *ngIf="f.phoneNumber.touched && f.phoneNumber.errors">
+          <span *ngIf="f.phoneNumber.errors['required']">Phone number is required</span>
+          <span *ngIf="f.phoneNumber.errors['pattern']">Enter a valid phone number</span>
+        </div>
+      </div>
+
+      <div class="banner error" *ngIf="error">{{ error }}</div>
+      <div class="banner success" *ngIf="success">{{ success }}</div>
+
+      <button class="primary" type="submit" [disabled]="loading">
+        {{ loading ? 'Creating...' : 'Create Account' }}
+      </button>
+
+      <div class="footer">
+        <span>Already have an account?</span>
+        <a routerLink="/admin/login">Login</a>
+      </div>
+    </form>
+  </div>
+</div>
+

@@ -69,6 +69,22 @@
       </div>
 
       <div class="form-group">
+        <label for="duration">Subscription Duration (Months) *</label>
+        <input
+          type="number"
+          id="duration"
+          formControlName="duration"
+          placeholder="Enter duration in months (e.g., 1, 3, 6, 12)"
+          min="1"
+          step="1"
+          [class.error]="submitted && f['duration'].errors">
+        <div class="error-message" *ngIf="submitted && f['duration'].errors">
+          <span *ngIf="f['duration'].errors['required']">Duration is required</span>
+          <span *ngIf="f['duration'].errors['min']">Duration must be at least 1 month</span>
+        </div>
+      </div>
+
+      <div class="form-group">
         <label for="rating">Rating (Optional)</label>
         <input
           type="number"

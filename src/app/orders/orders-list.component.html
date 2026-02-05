@@ -1,0 +1,58 @@
+<div class="orders-list-container">
+  <div class="orders-header">
+    <h1 class="page-title">Printer Orders</h1>
+    <p class="total-count" *ngIf="!loading && !error && totalItems > 0">{{ totalItems }} order{{ totalItems !== 1 ? 's' : '' }} total</p>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-container">
+    <div class="loading-spinner"></div>
+    <p>Loading printer orders...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error && !loading" class="error-container">
+    <mat-icon class="error-icon">error_outline</mat-icon>
+    <p class="error-message">{{ error }}</p>
+    <button class="retry-btn" (click)="fetchOrders()">Retry</button>
+  </div>
+
+  <!-- Orders List -->
+  <div *ngIf="!loading && !error" class="orders-content">
+    <div *ngIf="orders.length === 0" class="empty-state">
+      <mat-icon>print</mat-icon>
+      <p>No printer orders found</p>
+    </div>
+
+    <div *ngIf="orders.length > 0" class="orders-table-wrapper">
+      <table class="orders-table">
+        <thead>
+          <tr>
+            <th>Order ID</th>
+            <th>User</th>
+            <th>Amount</th>
+            <th>Quantity</th>
+            <th>Status</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let order of orders" class="order-row">
+            <td class="order-id">{{ getOrderDisplayId(order) }}</td>
+            <td class="user-cell">
+              <span class="user-email" *ngIf="order.user">{{ order.user.email }}</span>
+              <span class="user-brand" *ngIf="order.user?.brandName">{{ order.user?.brandName }}</span>
+              <span *ngIf="!order.user">—</span>
+            </td>
+            <td class="amount-cell">{{ formatAmount(order.amount, order.currency) }}</td>
+            <td class="quantity-cell">{{ order.quantity != null ? order.quantity : '—' }}</td>
+            <td>
+              <span class="status-badge" [ngClass]="getStatusClass(order.status)">{{ order.status }}</span>
+            </td>
+            <td class="date-cell">{{ formatDate(order.createdAt) }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

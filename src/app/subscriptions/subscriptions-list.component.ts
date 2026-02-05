@@ -18,6 +18,9 @@ export interface SubscriptionPlan {
   subtitle: string;
   bulletPoints: string[];
   showImage: boolean;
+  duration: number; // Duration in months
+  tax?: number; // Tax percentage (e.g., 18 for 18%)
+  withPrinter?: boolean;
 }
 
 interface ApiResponse {
@@ -123,7 +126,25 @@ export class SubscriptionsListComponent implements OnInit, OnDestroy {
       maxWidth: '800px',
       maxHeight: '90vh',
       disableClose: false,
-      panelClass: 'subscription-dialog'
+      panelClass: 'subscription-dialog',
+      data: null // No data means create mode
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result === 'success') {
+        this.fetchSubscriptionPlans();
+      }
+    });
+  }
+
+  openEditDialog(plan: SubscriptionPlan): void {
+    const dialogRef = this.dialog.open(SubscriptionFormDialogComponent, {
+      width: '90%',
+      maxWidth: '800px',
+      maxHeight: '90vh',
+      disableClose: false,
+      panelClass: 'subscription-dialog',
+      data: plan // Pass the plan data for edit mode
     });
 
     dialogRef.afterClosed().subscribe(result => {

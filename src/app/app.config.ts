@@ -1,8 +1,9 @@
 import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { provideRouter, withComponentInputBinding } from '@angular/router';
-import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
+import { provideHttpClient, withInterceptors, withInterceptorsFromDi } from '@angular/common/http';
 
 import { routes } from './app.routes';
+import { authTokenInterceptor } from './pages/admin-auth/auth-token.interceptor';
 
 // Handle GitHub Pages query string routing (from 404.html redirect)
 if (typeof window !== 'undefined' && window.location.search.includes('?/')) {
@@ -15,6 +16,9 @@ export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes, withComponentInputBinding()),
-    provideHttpClient(withInterceptorsFromDi())
+    provideHttpClient(
+    withInterceptorsFromDi(),
+    withInterceptors([authTokenInterceptor])
+  )
   ]
 };

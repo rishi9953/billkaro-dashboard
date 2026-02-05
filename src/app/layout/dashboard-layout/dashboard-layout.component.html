@@ -1,13 +1,16 @@
-<section class="pages-content">
+<section class="pages-content" [class.sidebar-collapsed]="sidebarCollapsed">
   <!-- Mobile Sidebar Overlay -->
   <div class="sidebar-overlay" *ngIf="sidebarOpen" (click)="closeSidebar()"></div>
 
-  <div class="pages-sidebar" [class.open]="sidebarOpen">
+  <div class="pages-sidebar" [class.open]="sidebarOpen" [class.collapsed]="sidebarCollapsed">
     <div>
       <div class="siderbar-heading">
         <div class="logo logoSidebar" [ngClass]="'default'">
           <img src="assets/images/logo.jpeg" alt="BillKaro" onerror="this.style.display='none'" />
         </div>
+        <button class="sidebar-collapse-btn" (click)="toggleSidebarCollapse()" [attr.aria-label]="sidebarCollapsed ? 'Expand sidebar' : 'Minimize sidebar'" [title]="sidebarCollapsed ? 'Expand sidebar' : 'Minimize sidebar'">
+          <mat-icon>{{ sidebarCollapsed ? 'chevron_right' : 'chevron_left' }}</mat-icon>
+        </button>
         <button class="close-sidebar-btn" (click)="closeSidebar()" aria-label="Close sidebar">
           <mat-icon>close</mat-icon>
         </button>
@@ -51,6 +54,9 @@
         <h2 class="page-title-nav">{{ currentPageTitle }}</h2>
       </div>
       <div class="nav-left">
+        <button type="button" class="theme-toggle-btn" (click)="toggleTheme()" [attr.aria-label]="themeService.isDark ? 'Switch to light mode' : 'Switch to dark mode'" [title]="themeService.isDark ? 'Light mode' : 'Dark mode'">
+          <mat-icon>{{ themeService.isDark ? 'light_mode' : 'dark_mode' }}</mat-icon>
+        </button>
         <div class="admin-details">
           <div class="admin-image">
             <span>{{ name.charAt(0).toUpperCase() }}</span>

@@ -6,7 +6,8 @@ import { filter } from 'rxjs/operators';
 import { Subject, takeUntil } from 'rxjs';
 import { SIDEBAR_ROUTING, SIDEBAR_ROUTING_BOTTOM } from '../../shared/constants/sidebar-routing.constant';
 import { NavItemLinkType } from '../../shared/types/nav-item-link.type';
-// import { NavItemLinkType } from '../../shared/types/nav-item-link.type';
+import { AdminAuthService } from '../../pages/admin-auth/admin-auth.service';
+import { ThemeService } from '../../core/theme.service';
 
 @Component({
   selector: 'app-dashboard-layout',
@@ -16,22 +17,35 @@ import { NavItemLinkType } from '../../shared/types/nav-item-link.type';
   styleUrls: ['./dashboard-layout.component.scss']
 })
 export class DashboardLayoutComponent implements OnInit, OnDestroy {
+  private static readonly SIDEBAR_COLLAPSED_KEY = 'billkaro-sidebar-collapsed';
   pageDashboardLink: NavItemLinkType[] = [];
   pageDashboardLinkBottom: NavItemLinkType[] = [];
   showSignOutModal = false;
   sidebarOpen = false;
+  sidebarCollapsed = false;
   name = 'Guest';
   email = 'guest@example.com';
   currentPageTitle = 'Dashboard';
   private destroy$ = new Subject<void>();
 
-  constructor(private router: Router) {}
+  constructor(
+    private router: Router,
+    private adminAuth: AdminAuthService,
+    public themeService: ThemeService
+  ) {}
 
   ngOnInit(): void {
     this.pageDashboardLink = SIDEBAR_ROUTING;
     this.pageDashboardLinkBottom = SIDEBAR_ROUTING_BOTTOM;
+    this.sidebarCollapsed = localStorage.getItem(DashboardLayoutComponent.SIDEBAR_COLLAPSED_KEY) === 'true';
     this.updateCurrentPageTitle();
-    
+
+    const admin = this.adminAuth.getCurrentAdmin();
+    if (admin) {
+      this.name = admin.name;
+      this.email = admin.email;
+    }
+
     // Listen to route changes to update page title
     this.router.events
       .pipe(
@@ -50,7 +64,7 @@ export class DashboardLayoutComponent implements OnInit, OnDestroy {
 
   updateCurrentPageTitle(): void {
     const currentUrl = this.router.url;
-    
+
     // Check all routes to find matching page title
     const allRoutes = [...this.pageDashboardLink, ...this.pageDashboardLinkBottom];
     const matchedRoute = allRoutes.find(route => {
@@ -59,7 +73,7 @@ export class DashboardLayoutComponent implements OnInit, OnDestroy {
       }
       return false;
     });
-    
+
     if (matchedRoute) {
       this.currentPageTitle = matchedRoute.label;
     } else {
@@ -70,6 +84,14 @@ export class DashboardLayoutComponent implements OnInit, OnDestroy {
         this.currentPageTitle = 'Users';
       } else if (currentUrl.includes('/subscriptions')) {
         this.currentPageTitle = 'Subscriptions';
+      } else if (currentUrl.includes('/services')) {
+        this.currentPageTitle = 'Services';
+      } else if (currentUrl.includes('/payments')) {
+        this.currentPageTitle = 'Payments'
+      } else if (currentUrl.includes('/orders')) {
+        this.currentPageTitle = 'Orders';
+      } else if (currentUrl.includes('/profile')) {
+        this.currentPageTitle = 'Profile';
       } else {
         this.currentPageTitle = 'Dashboard';
       }
@@ -84,13 +106,18 @@ export class DashboardLayoutComponent implements OnInit, OnDestroy {
     this.sidebarOpen = false;
   }
 
+  toggleSidebarCollapse(): void {
+    this.sidebarCollapsed = !this.sidebarCollapsed;
+    localStorage.setItem(DashboardLayoutComponent.SIDEBAR_COLLAPSED_KEY, String(this.sidebarCollapsed));
+  }
+
   navigateToRoute(path: string): void {
     const targetPath = path.startsWith('/') ? path : '/' + path;
     const currentUrl = this.router.url;
-    
+
     // Close sidebar on mobile after navigation
     this.closeSidebar();
-    
+
     // If already on the same route, force reload by navigating away and back
     if (currentUrl === targetPath || currentUrl === targetPath + '/') {
       // Navigate to root temporarily to force component destruction
@@ -119,8 +146,11 @@ export class DashboardLayoutComponent implements OnInit, OnDestroy {
   }
 
   logout(): void {
-    // Clear session and redirect to login
-    // this.session.logout();
-    this.router.navigate(['/login']);
+    this.adminAuth.logout();
+    this.router.navigate(['/admin/login']);
+  }
+
+  toggleTheme(): void {
+    this.themeService.toggleTheme();
   }
 }

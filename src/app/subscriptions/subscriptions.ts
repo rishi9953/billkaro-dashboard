@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormArray, FormControl } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { API_ENDPOINTS } from '../utilities/constant/api-url.constant';
 
 @Component({
@@ -30,7 +30,8 @@ export class SubscriptionFormComponent implements OnInit {
       subtitle: ['', [Validators.required]],
       bulletPoints: this.formBuilder.array([], Validators.minLength(1)),
       showImage: [true],
-      rating: ['4.8', [Validators.min(0), Validators.max(5)]]
+      rating: ['4.8', [Validators.min(0), Validators.max(5)]],
+      duration: ['', [Validators.required, Validators.min(1)]]
     });
   }
 
@@ -85,12 +86,21 @@ export class SubscriptionFormComponent implements OnInit {
       discountedPrice: parseFloat(this.subscriptionForm.value.discountedPrice),
       subtitle: this.subscriptionForm.value.subtitle,
       bulletPoints: this.subscriptionForm.value.bulletPoints.filter((point: string) => point.trim() !== ''),
-      showImage: this.subscriptionForm.value.showImage || false
+      showImage: this.subscriptionForm.value.showImage || false,
+      duration: parseInt(this.subscriptionForm.value.duration, 10)
     };
 
     this.loading = true;
 
-    this.http.post(this.apiUrl, formData).subscribe({
+    // Set headers for JSON content
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json'
+    });
+
+    console.log('Creating subscription plan:', this.apiUrl);
+    console.log('Request payload:', formData);
+    
+    this.http.post(this.apiUrl, formData, { headers }).subscribe({
       next: (response) => {
         this.loading = false;
         this.success = true;
@@ -100,8 +110,36 @@ export class SubscriptionFormComponent implements OnInit {
       },
       error: (error) => {
         this.loading = false;
-        console.error('Error creating subscription plan:', error);
-        this.error = error.error?.message || error.message || 'Failed to create subscription plan. Please try again.';
+        console.error('Error creating subscription plan - Full error:', error);
+        console.error('Error status:', error.status);
+        console.error('Error statusText:', error.statusText);
+        console.error('Error message:', error.message);
+        console.error('Error body:', error.error);
+        
+        let errorMessage = 'Failed to create subscription plan. Please try again.';
+        if (error.error) {
+          if (typeof error.error === 'string') {
+            errorMessage = error.error;
+          } else if (error.error.message) {
+            errorMessage = error.error.message;
+          } else if (error.error.error) {
+            errorMessage = error.error.error;
+          }
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+        
+        if (error.status === 0) {
+          errorMessage = 'Network error: Unable to connect to the server. Please check your internet connection and ensure the API server is running.';
+        } else if (error.status === 404) {
+          errorMessage = 'API endpoint not found. Please verify the API URL is correct.';
+        } else if (error.status === 500) {
+          errorMessage = 'Server error: ' + (errorMessage || 'Internal server error occurred.');
+        } else if (error.status === 400) {
+          errorMessage = 'Bad request: ' + (errorMessage || 'Please check your input data.');
+        }
+        
+        this.error = errorMessage;
         alert(this.error);
       }
     });
@@ -115,7 +153,8 @@ export class SubscriptionFormComponent implements OnInit {
     this.subscriptionForm.reset();
     this.subscriptionForm.patchValue({ 
       rating: '4.8',
-      showImage: true
+      showImage: true,
+      duration: ''
     });
     this.addBulletPoint();
   }

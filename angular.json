@@ -41,7 +41,7 @@
           },
           "configurations": {
             "production": {
-              "baseHref": "/billkaro-dashboard/",
+              "baseHref": "/",
               "budgets": [
                 {
                   "type": "initial",
@@ -57,6 +57,7 @@
               "outputHashing": "all"
             },
             "development": {
+              "baseHref": "/",
               "optimization": false,
               "extractLicenses": false,
               "sourceMap": true

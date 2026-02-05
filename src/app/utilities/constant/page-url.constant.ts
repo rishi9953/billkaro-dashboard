@@ -2,5 +2,9 @@ export const PAGE_URL = {
   HOME: '/dashboard/home',
   USERS: '/dashboard/users',
   SUBSCRIPTIONS: '/subscriptions',
-  SIGN_OUT: '/login'
+  SERVICES: '/services',
+  SIGN_OUT: '/login',
+  PAYMENTS: '/payments',
+  ORDERS: '/orders',
+  PROFILE: '/profile',
 };

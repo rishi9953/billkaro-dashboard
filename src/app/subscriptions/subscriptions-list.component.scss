@@ -1,6 +1,6 @@
 .subscriptions-list-container {
   padding: 24px;
-  background-color: #f5f5f7;
+  background-color: var(--app-bg-page);
   min-height: calc(100vh - 80px);
   position: relative;
 }
@@ -12,7 +12,7 @@
 .page-title {
   font-size: 28px;
   font-weight: 600;
-  color: #333;
+  color: var(--app-text-primary);
   margin: 0;
 }
 
@@ -34,7 +34,7 @@
   }
 
   p {
-    color: #666;
+    color: var(--app-text-secondary);
     font-size: 16px;
   }
 }
@@ -101,7 +101,7 @@
   justify-content: center;
   padding: 60px 20px;
   gap: 16px;
-  background-color: white;
+  background-color: var(--app-bg-card);
   border-radius: 12px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 
@@ -109,26 +109,27 @@
     font-size: 64px;
     width: 64px;
     height: 64px;
-    color: #ccc;
+    color: var(--app-text-secondary);
   }
 
   p {
-    color: #666;
+    color: var(--app-text-secondary);
     font-size: 16px;
     margin: 0;
 
     &.empty-subtitle {
       font-size: 14px;
-      color: #999;
+      color: var(--app-text-secondary);
     }
   }
 }
 
 .subscription-card {
-  background-color: white;
+  background-color: var(--app-bg-card);
   border-radius: 12px;
   padding: 24px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--app-border);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   display: flex;
   flex-direction: column;
@@ -144,12 +145,12 @@
     justify-content: space-between;
     align-items: center;
     padding-bottom: 16px;
-    border-bottom: 1px solid #e0e0e0;
+    border-bottom: 1px solid var(--app-border);
 
     .plan-title {
       font-size: 20px;
       font-weight: 600;
-      color: #333;
+      color: var(--app-text-primary);
       margin: 0;
     }
 
@@ -171,12 +172,12 @@
 
     .plan-subtitle {
       font-size: 14px;
-      color: #666;
+      color: var(--app-text-secondary);
       margin: 0;
     }
 
     .price-section {
-      background-color: #f8f9fa;
+      background-color: var(--app-border);
       padding: 16px;
       border-radius: 8px;
 
@@ -192,7 +193,7 @@
 
         .price-label {
           font-size: 14px;
-          color: #666;
+          color: var(--app-text-secondary);
         }
 
         .original-price {
@@ -224,7 +225,7 @@
       .features-title {
         font-size: 14px;
         font-weight: 600;
-        color: #333;
+        color: var(--app-text-primary);
         margin: 0 0 8px 0;
       }
 
@@ -238,7 +239,7 @@
 
         li {
           font-size: 14px;
-          color: #666;
+          color: var(--app-text-secondary);
           padding-left: 20px;
           position: relative;
 
@@ -257,16 +258,50 @@
 
   .card-footer {
     padding-top: 16px;
-    border-top: 1px solid #e0e0e0;
+    border-top: 1px solid var(--app-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 
     .created-date {
       font-size: 12px;
-      color: #999;
+      color: var(--app-text-secondary);
+    }
+
+    .edit-btn {
+      background-color: transparent;
+      border: 1px solid #5a67d8;
+      color: #5a67d8;
+      border-radius: 8px;
+      padding: 8px 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s ease;
+      font-size: 14px;
+
+      mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+      }
+
+      &:hover {
+        background-color: #5a67d8;
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 2px 8px rgba(90, 103, 216, 0.3);
+      }
+
+      &:active {
+        transform: translateY(0);
+      }
     }
   }
 }
 
-// Floating Action Button
+// Floating Action Button - Always in bottom right corner
 .fab {
   position: fixed;
   bottom: 24px;
@@ -299,13 +334,6 @@
 
   &:active {
     transform: scale(0.95);
-  }
-}
-
-// Adjust FAB position on desktop to account for sidebar
-@media (min-width: 1025px) {
-  .fab {
-    right: calc(24px + 277px); // sidebar width + margin
   }
 }
 

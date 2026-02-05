@@ -1,10 +1,155 @@
-<section class="page-content-modules page-home">
-  <div class="page-cards">
-    <ng-container *ngFor="let item of homeData.CARD">
-      <app-page-card
-        [card]="item"
-        (cardClicked)="onCardClicked($event)"
-      ></app-page-card>
-    </ng-container>
+<section class="dashboard">
+  <header class="dashboard-header">
+    <div>
+      <h1 class="dashboard-title">Dashboard</h1>
+      <p class="dashboard-subtitle">Overview of your platform</p>
+    </div>
+  </header>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="dashboard-loading">
+    <div class="spinner"></div>
+    <p>Loading dashboard...</p>
   </div>
+
+  <ng-container *ngIf="!loading">
+    <!-- Stats cards -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon stat-icon-users">
+          <mat-icon>people</mat-icon>
+        </div>
+        <div class="stat-body">
+          <span class="stat-label">Total Users</span>
+          <span class="stat-value">{{ totalUsers }}</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon stat-icon-active">
+          <mat-icon>check_circle</mat-icon>
+        </div>
+        <div class="stat-body">
+          <span class="stat-label">Active Users</span>
+          <span class="stat-value">{{ activeUsers }}</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon stat-icon-pending">
+          <mat-icon>schedule</mat-icon>
+        </div>
+        <div class="stat-body">
+          <span class="stat-label">Inactive Users</span>
+          <span class="stat-value">{{ inactiveUsers }}</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon stat-icon-revenue">
+          <mat-icon>trending_up</mat-icon>
+        </div>
+        <div class="stat-body">
+          <span class="stat-label">Total Revenue</span>
+          <span class="stat-value">{{ totalRevenue }}</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon stat-icon-outlets">
+          <mat-icon>store</mat-icon>
+        </div>
+        <div class="stat-body">
+          <span class="stat-label">Total Outlets</span>
+          <span class="stat-value">{{ totalOutlets }}</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon stat-icon-orders">
+          <mat-icon>shopping_bag</mat-icon>
+        </div>
+        <div class="stat-body">
+          <span class="stat-label">Total Orders</span>
+          <span class="stat-value">{{ totalOrders }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts row -->
+    <div class="charts-row">
+      <div class="chart-card chart-card-line">
+        <h3 class="chart-title">User signups (last 6 months)</h3>
+        <div class="chart-container">
+          <canvas #lineChartCanvas></canvas>
+        </div>
+      </div>
+      <div class="chart-card chart-card-doughnut">
+        <h3 class="chart-title">User status</h3>
+        <div class="chart-container chart-container-doughnut">
+          <canvas #doughnutChartCanvas></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent lists row -->
+    <div class="recent-lists-row">
+      <div class="recent-list-card">
+        <div class="recent-list-header">
+          <h3 class="recent-list-title">Recent Transactions</h3>
+          <a [routerLink]="pageUrl.PAYMENTS" class="view-all-link">View All</a>
+        </div>
+        <ul class="recent-list">
+          <li *ngFor="let item of recentTransactions" class="recent-list-item">
+            <div class="recent-item-left">
+              <span class="recent-avatar" [style.background-color]="getAvatarColor(item.colorIndex)">{{ getInitial(item.companyName) }}</span>
+              <div class="recent-item-info">
+                <span class="recent-item-name">{{ item.companyName }}</span>
+                <span class="recent-item-meta">{{ item.transactionId }} • {{ item.date }}</span>
+              </div>
+            </div>
+            <div class="recent-item-right">
+              <span class="recent-item-amount">{{ item.amount }}</span>
+              <span class="recent-item-meta">{{ item.planType }}</span>
+            </div>
+          </li>
+        </ul>
+      </div>
+      <div class="recent-list-card">
+        <div class="recent-list-header">
+          <h3 class="recent-list-title">Recently Registered</h3>
+          <a [routerLink]="pageUrl.USERS" class="view-all-link">View All</a>
+        </div>
+        <ul class="recent-list">
+          <li *ngFor="let item of recentlyRegistered" class="recent-list-item">
+            <div class="recent-item-left">
+              <span class="recent-avatar" [style.background-color]="getAvatarColor(item.colorIndex)">{{ getInitial(item.companyName) }}</span>
+              <div class="recent-item-info">
+                <span class="recent-item-name">{{ item.companyName }}</span>
+                <span class="recent-item-meta">{{ item.planType }}</span>
+              </div>
+            </div>
+            <div class="recent-item-right">
+              <span class="recent-item-value">{{ item.userCount }} Outlets</span>
+            </div>
+          </li>
+        </ul>
+      </div>
+      <div class="recent-list-card">
+        <div class="recent-list-header">
+          <h3 class="recent-list-title">Recent Plan Expired</h3>
+          <a [routerLink]="pageUrl.SUBSCRIPTIONS" class="view-all-link">View All</a>
+        </div>
+        <ul class="recent-list">
+          <li *ngFor="let item of recentPlanExpired" class="recent-list-item">
+            <div class="recent-item-left">
+              <span class="recent-avatar" [style.background-color]="getAvatarColor(item.colorIndex)">{{ getInitial(item.companyName) }}</span>
+              <div class="recent-item-info">
+                <span class="recent-item-name">{{ item.companyName }}</span>
+                <span class="recent-item-meta">Expired: {{ item.expiredDate }}</span>
+              </div>
+            </div>
+            <div class="recent-item-right">
+              <button type="button" class="send-reminder-btn" (click)="sendReminder(item.companyName)">Send Reminder</button>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </ng-container>
 </section>

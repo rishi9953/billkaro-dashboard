@@ -1,6 +1,6 @@
 <div class="dialog-container">
   <div class="dialog-header">
-    <h2 class="dialog-title">Create Subscription Plan</h2>
+    <h2 class="dialog-title">{{ isEditMode ? 'Edit Subscription Plan' : 'Create Subscription Plan' }}</h2>
     <button mat-icon-button class="close-btn" (click)="closeDialog()" aria-label="Close dialog">
       <mat-icon>close</mat-icon>
     </button>
@@ -55,6 +55,22 @@
               <span *ngIf="f['discountedPrice'].errors['min']">Price must be 0 or greater</span>
             </div>
           </div>
+
+          <div class="form-group">
+            <label for="tax">Tax (%)</label>
+            <input
+              type="number"
+              id="tax"
+              formControlName="tax"
+              placeholder="Enter tax percentage (e.g., 18)"
+              min="0"
+              max="100"
+              step="0.01"
+              [class.error]="submitted && f['tax'].errors">
+            <div class="error-message" *ngIf="submitted && f['tax'].errors">
+              <span *ngIf="f['tax'].errors['min'] || f['tax'].errors['max']">Tax must be between 0 and 100</span>
+            </div>
+          </div>
         </div>
 
         <div class="form-group">
@@ -67,6 +83,22 @@
             [class.error]="submitted && f['subtitle'].errors">
           <div class="error-message" *ngIf="submitted && f['subtitle'].errors">
             <span *ngIf="f['subtitle'].errors['required']">Subtitle is required</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="duration">Subscription Duration (Months) *</label>
+          <input
+            type="number"
+            id="duration"
+            formControlName="duration"
+            placeholder="Enter duration in months (e.g., 1, 3, 6, 12)"
+            min="1"
+            step="1"
+            [class.error]="submitted && f['duration'].errors">
+          <div class="error-message" *ngIf="submitted && f['duration'].errors">
+            <span *ngIf="f['duration'].errors['required']">Duration is required</span>
+            <span *ngIf="f['duration'].errors['min']">Duration must be at least 1 month</span>
           </div>
         </div>
 
@@ -92,6 +124,16 @@
               id="showImage"
               formControlName="showImage">
             <span>Show Image</span>
+          </label>
+        </div>
+
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input
+              type="checkbox"
+              id="withPrinter"
+              formControlName="withPrinter">
+            <span>With Printer</span>
           </label>
         </div>
       </div>
@@ -142,15 +184,15 @@
 
       <!-- Success Message -->
       <div class="success-message" *ngIf="success" style="margin-bottom: 20px; padding: 15px; background-color: #d1fae5; border-radius: 8px; color: #065f46;">
-        Subscription plan created successfully!
+        Subscription plan {{ isEditMode ? 'updated' : 'created' }} successfully!
       </div>
 
       <!-- Submit Button -->
       <div class="form-actions">
         <button type="button" mat-button (click)="closeDialog()">Cancel</button>
         <button type="submit" mat-raised-button color="primary" [disabled]="loading">
-          <span *ngIf="!loading">Create Plan</span>
-          <span *ngIf="loading">Creating...</span>
+          <span *ngIf="!loading">{{ isEditMode ? 'Update Plan' : 'Create Plan' }}</span>
+          <span *ngIf="loading">{{ isEditMode ? 'Updating...' : 'Creating...' }}</span>
         </button>
       </div>
     </form>

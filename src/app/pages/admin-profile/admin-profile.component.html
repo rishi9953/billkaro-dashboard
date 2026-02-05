@@ -1,0 +1,52 @@
+<section class="admin-profile-page">
+  <header class="profile-header">
+    <h1 class="page-title">Admin Profile</h1>
+    <p class="page-subtitle">Your account details</p>
+  </header>
+
+  <div *ngIf="!admin" class="profile-empty">
+    <mat-icon>person_off</mat-icon>
+    <p>No profile loaded. Please sign in again.</p>
+  </div>
+
+  <div *ngIf="admin" class="profile-card">
+    <div class="profile-avatar-row">
+      <div class="profile-avatar">
+        <span>{{ initial }}</span>
+      </div>
+      <div class="profile-name">{{ admin.name || '—' }}</div>
+      <div class="profile-role">Administrator</div>
+    </div>
+
+    <div class="profile-details">
+      <div class="detail-row">
+        <span class="detail-label">
+          <mat-icon>person</mat-icon>
+          Name
+        </span>
+        <span class="detail-value">{{ display(admin.name) }}</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">
+          <mat-icon>email</mat-icon>
+          Email
+        </span>
+        <span class="detail-value">{{ display(admin.email) }}</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">
+          <mat-icon>phone</mat-icon>
+          Phone
+        </span>
+        <span class="detail-value">{{ display(admin.phoneNumber) }}</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">
+          <mat-icon>location_on</mat-icon>
+          Address
+        </span>
+        <span class="detail-value">{{ display(admin.address) }}</span>
+      </div>
+    </div>
+  </div>
+</section>

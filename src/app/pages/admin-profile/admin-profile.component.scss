@@ -1,0 +1,143 @@
+.admin-profile-page {
+  padding: 24px;
+  min-height: calc(100vh - 80px);
+  background-color: var(--app-bg-page);
+}
+
+.profile-header {
+  margin-bottom: 28px;
+
+  .page-title {
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--app-text-primary);
+    margin: 0 0 4px 0;
+    letter-spacing: -0.02em;
+  }
+
+  .page-subtitle {
+    font-size: 14px;
+    color: var(--app-text-secondary);
+    margin: 0;
+  }
+}
+
+.profile-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  gap: 16px;
+  background-color: var(--app-bg-card);
+  border-radius: 12px;
+  border: 1px solid var(--app-border);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+
+  mat-icon {
+    font-size: 64px;
+    width: 64px;
+    height: 64px;
+    color: var(--app-text-secondary);
+  }
+
+  p {
+    color: var(--app-text-secondary);
+    font-size: 15px;
+    margin: 0;
+  }
+}
+
+.profile-card {
+  background-color: var(--app-bg-card);
+  border-radius: 12px;
+  padding: 32px;
+  max-width: 560px;
+  border: 1px solid var(--app-border);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.profile-avatar-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 28px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--app-border);
+}
+
+.profile-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.profile-name {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--app-text-primary);
+}
+
+.profile-role {
+  font-size: 13px;
+  color: var(--app-text-secondary);
+  font-weight: 500;
+}
+
+.profile-details {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.detail-row {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  align-items: start;
+  gap: 16px;
+
+  .detail-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--app-text-secondary);
+
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      color: var(--app-text-secondary);
+    }
+  }
+
+  .detail-value {
+    font-size: 15px;
+    color: var(--app-text-primary);
+    word-break: break-word;
+  }
+}
+
+@media (max-width: 600px) {
+  .admin-profile-page {
+    padding: 16px;
+  }
+
+  .profile-card {
+    padding: 24px;
+  }
+
+  .detail-row {
+    grid-template-columns: 1fr;
+  }
+}

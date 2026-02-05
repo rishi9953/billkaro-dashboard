@@ -2,8 +2,10 @@ import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { MatIconModule } from '@angular/material/icon';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { Subject } from 'rxjs';
 import { API_ENDPOINTS } from '../../utilities/constant/api-url.constant';
+import { UserDetailsDialogComponent } from './user-details-dialog/user-details-dialog.component';
 
 export interface OutletData {
   id: string;
@@ -43,6 +45,8 @@ export interface User {
   activationToken: string;
   activationTokenExpiresAt: string | null;
   outletData: OutletData[];
+  /** User profile/avatar image URL */
+  image?: string;
 }
 
 interface ApiResponse {
@@ -53,7 +57,7 @@ interface ApiResponse {
 @Component({
   selector: 'app-users',
   standalone: true,
-  imports: [CommonModule, MatIconModule],
+  imports: [CommonModule, MatIconModule, MatDialogModule],
   templateUrl: './users.component.html',
   styleUrls: ['./users.component.scss']
 })
@@ -66,7 +70,8 @@ export class UsersComponent implements OnInit, OnDestroy {
 
   constructor(
     private http: HttpClient,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private dialog: MatDialog
   ) {}
 
   ngOnInit(): void {
@@ -158,6 +163,30 @@ export class UsersComponent implements OnInit, OnDestroy {
 
   getOutletCount(user: User): number {
     return user.outletData?.length || 0;
+  }
+
+  getFullName(user: User): string {
+    const first = user?.firstName?.trim() ?? '';
+    const last = user?.lastName?.trim() ?? '';
+    return [first, last].filter(Boolean).join(' ') || user?.brandName || '—';
+  }
+
+  /** Track failed image loads so we can show placeholder */
+  userImageFailed = new Set<string>();
+  onUserImageError(user: User): void {
+    this.userImageFailed.add(user.id);
+    this.cdr.detectChanges();
+  }
+
+  openUserDetails(user: User): void {
+    this.dialog.open(UserDetailsDialogComponent, {
+      width: '90%',
+      maxWidth: '700px',
+      maxHeight: '90vh',
+      disableClose: false,
+      panelClass: 'user-details-dialog',
+      data: user
+    });
   }
 }
 

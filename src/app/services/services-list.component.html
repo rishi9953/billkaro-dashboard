@@ -1,0 +1,75 @@
+<div class="services-list-container">
+  <div class="services-header">
+    <h1 class="page-title">Services</h1>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-container">
+    <div class="loading-spinner"></div>
+    <p>Loading services...</p>
+  </div>
+
+  <!-- Error State (non-blocking: still show FAB and empty list) -->
+  <div *ngIf="error && !loading" class="error-container">
+    <mat-icon class="error-icon">error_outline</mat-icon>
+    <p class="error-message">{{ error }}</p>
+    <button class="retry-btn" (click)="fetchServices()">Retry</button>
+  </div>
+
+  <!-- Services List -->
+  <div *ngIf="!loading" class="services-list-wrapper">
+    <div *ngIf="services.length === 0" class="empty-state">
+      <mat-icon>miscellaneous_services</mat-icon>
+      <p>No services yet</p>
+      <p class="empty-subtitle">Use the + button to add your first service</p>
+    </div>
+
+    <div class="services-list" *ngIf="services.length > 0">
+      <div *ngFor="let service of services" class="service-card">
+        <div class="service-info">
+          <h3 class="service-name">{{ service.name }}</h3>
+          <div class="service-value" *ngIf="service.value">{{ service.value }}</div>
+          <p class="service-description" *ngIf="service.description">{{ service.description }}</p>
+          <span class="service-date"> Created: {{ formatDate(service.createdAt) }}</span>
+        </div>
+        <div class="service-actions">
+          <button
+            mat-icon-button
+            type="button"
+            class="action-btn edit"
+            (click)="openEditDialog(service)"
+            [disabled]="service.id.startsWith('static-')"
+            aria-label="Edit service {{ service.name }}"
+          >
+            <mat-icon>edit</mat-icon>
+          </button>
+
+          <button
+            mat-icon-button
+            type="button"
+            class="action-btn delete"
+            (click)="deleteService(service)"
+            [disabled]="service.id.startsWith('static-') || deletingId === service.id"
+            aria-label="Delete service {{ service.name }}"
+          >
+            <mat-icon>delete</mat-icon>
+          </button>
+
+          <mat-slide-toggle
+            [checked]="service.active"
+            [disabled]="togglingId === service.id || deletingId === service.id"
+            (change)="onToggleChange(service, $event.checked)"
+            color="primary"
+            aria-label="Toggle service {{ service.name }}"
+          >
+          </mat-slide-toggle>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating Action Button -->
+  <button class="fab" (click)="openAddDialog()" aria-label="Add new service">
+    <mat-icon>add</mat-icon>
+  </button>
+</div>
