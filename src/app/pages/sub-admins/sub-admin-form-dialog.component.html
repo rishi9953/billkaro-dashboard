@@ -1,0 +1,124 @@
+<div class="dialog-container">
+  <div class="dialog-header">
+    <h2 class="dialog-title">{{ isEditMode ? 'Edit Sub Admin' : 'Create Sub Admin' }}</h2>
+    <button mat-icon-button class="close-btn" (click)="closeDialog()" aria-label="Close dialog">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <div class="dialog-content">
+    <form [formGroup]="form" (ngSubmit)="onSubmit()">
+      <div class="form-card">
+        <div class="form-group">
+          <label for="name">Name *</label>
+          <input
+            type="text"
+            id="name"
+            formControlName="name"
+            placeholder="Full name"
+            [class.error]="submitted && f['name'].errors">
+          <div class="error-message" *ngIf="submitted && f['name'].errors">
+            <span *ngIf="f['name'].errors['required']">Name is required</span>
+            <span *ngIf="f['name'].errors['minlength']">At least 2 characters</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="email">Email *</label>
+          <input
+            type="email"
+            id="email"
+            formControlName="email"
+            placeholder="admin@example.com"
+            [class.error]="submitted && f['email'].errors"
+            [readonly]="isEditMode">
+          <div class="error-message" *ngIf="submitted && f['email'].errors">
+            <span *ngIf="f['email'].errors['required']">Email is required</span>
+            <span *ngIf="f['email'].errors['email']">Enter a valid email</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="phoneNumber">Phone Number</label>
+          <input
+            type="tel"
+            id="phoneNumber"
+            formControlName="phoneNumber"
+            placeholder="+91 98765 43210">
+        </div>
+
+        <div class="form-group" *ngIf="!isEditMode">
+          <label for="password">Password *</label>
+          <div class="password-wrapper">
+            <input
+              type="text"
+              id="password"
+              formControlName="password"
+              placeholder="Minimum 6 characters"
+              [type]="hidePassword ? 'password' : 'text'"
+              [class.error]="submitted && f['password'].errors">
+            <button type="button" class="password-toggle" (click)="togglePassword()" aria-label="Toggle password visibility">
+              <mat-icon>{{ hidePassword ? 'visibility' : 'visibility_off' }}</mat-icon>
+            </button>
+          </div>
+          <div class="error-message" *ngIf="submitted && f['password'].errors">
+            <span *ngIf="f['password'].errors['required']">Password is required</span>
+            <span *ngIf="f['password'].errors['minlength']">Minimum 6 characters</span>
+          </div>
+        </div>
+
+        <div class="form-group" *ngIf="!isEditMode">
+          <label for="confirmPassword">Confirm Password *</label>
+          <div class="password-wrapper">
+            <input
+              type="text"
+              id="confirmPassword"
+              formControlName="confirmPassword"
+              placeholder="Re-enter password"
+              [type]="hideConfirmPassword ? 'password' : 'text'"
+              [class.error]="getConfirmPasswordError()">
+            <button type="button" class="password-toggle" (click)="toggleConfirmPassword()" aria-label="Toggle confirm password visibility">
+              <mat-icon>{{ hideConfirmPassword ? 'visibility' : 'visibility_off' }}</mat-icon>
+            </button>
+          </div>
+          <div class="error-message" *ngIf="getConfirmPasswordError()">
+            <span *ngIf="f['confirmPassword'].errors?.['required']">Please confirm password</span>
+            <span *ngIf="passwordsMismatch()">Passwords do not match</span>
+          </div>
+        </div>
+
+        <div class="form-group" *ngIf="isEditMode">
+          <label for="passwordEdit">New Password (leave blank to keep current)</label>
+          <div class="password-wrapper">
+            <input
+              type="text"
+              id="passwordEdit"
+              formControlName="password"
+              placeholder="Optional: enter new password"
+              [type]="hidePassword ? 'password' : 'text'"
+              [class.error]="submitted && f['password'].errors">
+            <button type="button" class="password-toggle" (click)="togglePassword()" aria-label="Toggle password visibility">
+              <mat-icon>{{ hidePassword ? 'visibility' : 'visibility_off' }}</mat-icon>
+            </button>
+          </div>
+          <div class="error-message" *ngIf="submitted && f['password'].errors?.['minlength']">
+            If set, password must be at least 6 characters
+          </div>
+        </div>
+      </div>
+
+      <div class="error-message banner" *ngIf="error">{{ error }}</div>
+      <div class="success-message banner" *ngIf="success">
+        Sub admin {{ isEditMode ? 'updated' : 'created' }} successfully!
+      </div>
+
+      <div class="form-actions">
+        <button type="button" mat-button (click)="closeDialog()">Cancel</button>
+        <button type="submit" mat-raised-button color="primary" [disabled]="loading">
+          <span *ngIf="!loading">{{ isEditMode ? 'Update' : 'Create Sub Admin' }}</span>
+          <span *ngIf="loading">{{ isEditMode ? 'Updating...' : 'Creating...' }}</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

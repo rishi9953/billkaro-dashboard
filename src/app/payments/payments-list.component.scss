@@ -147,8 +147,10 @@
 
 .payments-table {
   width: 100%;
+  min-width: 720px;
   border-collapse: collapse;
   font-size: 14px;
+  table-layout: auto;
 
   thead {
     background-color: var(--app-border);
@@ -187,9 +189,11 @@
   }
 
   .user-cell {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
+    .user-cell-inner {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
 
     .user-email {
       font-weight: 500;

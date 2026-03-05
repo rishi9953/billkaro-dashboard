@@ -30,25 +30,27 @@
     </div>
 
     <div *ngIf="payments.length > 0" class="payments-table-wrapper">
-      <table class="payments-table">
+      <table class="payments-table" role="grid">
         <thead>
           <tr>
-            <th>Transaction ID</th>
-            <th>User</th>
-            <th>Amount</th>
-            <th>Method</th>
-            <th>Status</th>
-            <th>Verified</th>
-            <th>Date</th>
+            <th scope="col">Transaction ID</th>
+            <th scope="col">User</th>
+            <th scope="col">Amount</th>
+            <th scope="col">Method</th>
+            <th scope="col">Status</th>
+            <th scope="col">Verified</th>
+            <th scope="col">Date</th>
           </tr>
         </thead>
         <tbody>
           <tr *ngFor="let payment of payments" class="payment-row">
             <td class="transaction-id">{{ payment.transactionId }}</td>
             <td class="user-cell">
-              <span class="user-email" *ngIf="payment.user">{{ payment.user.email }}</span>
-              <span class="user-brand" *ngIf="payment.user?.brandName">{{ payment.user?.brandName }}</span>
-              <span *ngIf="!payment.user">—</span>
+              <div class="user-cell-inner">
+                <span class="user-email" *ngIf="payment.user">{{ payment.user.email }}</span>
+                <span class="user-brand" *ngIf="payment.user?.brandName">{{ payment.user?.brandName }}</span>
+                <span *ngIf="!payment.user">—</span>
+              </div>
             </td>
             <td class="amount-cell">{{ formatAmount(payment.amount, payment.currency) }}</td>
             <td><span class="method-badge">{{ payment.method }}</span></td>

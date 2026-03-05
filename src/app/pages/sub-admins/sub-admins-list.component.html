@@ -1,0 +1,55 @@
+<div class="sub-admins-list-container">
+  <div class="sub-admins-header">
+    <h1 class="page-title">Sub Admins</h1>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-container">
+    <div class="loading-spinner"></div>
+    <p>Loading sub admins...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error && !loading" class="error-container">
+    <mat-icon class="error-icon">error_outline</mat-icon>
+    <p class="error-message">{{ error }}</p>
+    <button class="retry-btn" (click)="fetchSubAdmins()">Retry</button>
+  </div>
+
+  <!-- Sub Admins List -->
+  <div *ngIf="!loading && !error" class="sub-admins-content">
+    <div *ngIf="subAdmins.length === 0" class="empty-state">
+      <mat-icon>admin_panel_settings</mat-icon>
+      <p>No sub admins yet</p>
+      <p class="empty-subtitle">Click the + button to create your first sub admin</p>
+    </div>
+
+    <div *ngIf="subAdmins.length > 0" class="sub-admins-grid">
+      <div *ngFor="let admin of subAdmins" class="sub-admin-card">
+        <div class="card-header">
+          <div class="avatar">{{ (admin.name && admin.name.charAt(0).toUpperCase()) || '?' }}</div>
+          <h3 class="admin-name">{{ admin.name }}</h3>
+          <button class="edit-btn" (click)="openEditDialog(admin)" aria-label="Edit sub admin" title="Edit">
+            <mat-icon>edit</mat-icon>
+          </button>
+        </div>
+        <div class="card-body">
+          <p class="admin-email">
+            <mat-icon>email</mat-icon>
+            {{ admin.email }}
+          </p>
+          <p class="admin-phone" *ngIf="admin.phoneNumber">
+            <mat-icon>phone</mat-icon>
+            {{ admin.phoneNumber }}
+          </p>
+          <span class="created-date">Added {{ formatDate(admin.createdAt) }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating Action Button -->
+  <button class="fab" (click)="openCreateDialog()" aria-label="Create new sub admin">
+    <mat-icon>add</mat-icon>
+  </button>
+</div>

@@ -25,29 +25,65 @@
     </div>
 
     <div *ngIf="orders.length > 0" class="orders-table-wrapper">
-      <table class="orders-table">
+      <table class="orders-table" role="grid">
         <thead>
           <tr>
-            <th>Order ID</th>
-            <th>User</th>
-            <th>Amount</th>
-            <th>Quantity</th>
-            <th>Status</th>
-            <th>Date</th>
+            <th scope="col">Order ID</th>
+            <th scope="col">Outlet</th>
+            <th scope="col">Contact</th>
+            <th scope="col">Delivery</th>
+            <th scope="col">Pincode</th>
+            <th scope="col">Status</th>
+            <th scope="col">Date</th>
           </tr>
         </thead>
         <tbody>
           <tr *ngFor="let order of orders" class="order-row">
             <td class="order-id">{{ getOrderDisplayId(order) }}</td>
             <td class="user-cell">
-              <span class="user-email" *ngIf="order.user">{{ order.user.email }}</span>
-              <span class="user-brand" *ngIf="order.user?.brandName">{{ order.user?.brandName }}</span>
-              <span *ngIf="!order.user">—</span>
+              <div class="user-cell-inner">
+                <span class="user-email">{{ order.outletName || '—' }}</span>
+                <span class="user-brand" *ngIf="order.outletAddress">{{ order.outletAddress }}</span>
+              </div>
             </td>
-            <td class="amount-cell">{{ formatAmount(order.amount, order.currency) }}</td>
-            <td class="quantity-cell">{{ order.quantity != null ? order.quantity : '—' }}</td>
+            <td class="quantity-cell">
+              <div class="contact-cell">
+                <div class="contact-text-block">
+                  <span class="contact-email">{{ order.email || '—' }}</span>
+                  <span class="contact-phone" *ngIf="order.phoneNumber">{{ order.phoneNumber }}</span>
+                </div>
+                <a
+                  *ngIf="order.phoneNumber"
+                  class="call-link"
+                  [href]="'tel:' + order.phoneNumber"
+                  (click)="$event.stopPropagation()"
+                >
+                  Call
+                </a>
+              </div>
+            </td>
+            <td class="date-cell">
+              <div class="address-cell">
+                <span class="address-main">{{ order.deliveryAddress || '—' }}</span>
+                <span class="address-sub" *ngIf="order.outletAddress">
+                  Outlet: {{ order.outletAddress }}
+                </span>
+              </div>
+            </td>
+            <td class="quantity-cell">{{ order.pincode || '—' }}</td>
             <td>
-              <span class="status-badge" [ngClass]="getStatusClass(order.status)">{{ order.status }}</span>
+              <div class="status-cell">
+                <span class="status-badge" [ngClass]="getStatusClass(order.status)">{{ order.status }}</span>
+                <select
+                  class="status-select"
+                  [value]="order.status"
+                  (change)="onStatusChange(order, $any($event.target).value)"
+                >
+                  <option *ngFor="let s of statusOptions" [value]="s">
+                    {{ s }}
+                  </option>
+                </select>
+              </div>
             </td>
             <td class="date-cell">{{ formatDate(order.createdAt) }}</td>
           </tr>

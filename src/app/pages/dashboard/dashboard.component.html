@@ -89,7 +89,7 @@
 
     <!-- Recent lists row -->
     <div class="recent-lists-row">
-      <div class="recent-list-card">
+      <div class="recent-list-card" *ngIf="false">
         <div class="recent-list-header">
           <h3 class="recent-list-title">Recent Transactions</h3>
           <a [routerLink]="pageUrl.PAYMENTS" class="view-all-link">View All</a>
@@ -130,7 +130,7 @@
           </li>
         </ul>
       </div>
-      <div class="recent-list-card">
+      <div class="recent-list-card" *ngIf="false">
         <div class="recent-list-header">
           <h3 class="recent-list-title">Recent Plan Expired</h3>
           <a [routerLink]="pageUrl.SUBSCRIPTIONS" class="view-all-link">View All</a>

@@ -8,6 +8,13 @@ export const SIDEBAR_ROUTING: NavItemLinkType[] = [
     path: PAGE_URL.HOME,
     accessName: 'DASHBOARD',
   },
+
+  {
+    label: 'Sub Admins',
+    icon: 'admin_panel_settings',
+    path: PAGE_URL.SUB_ADMINS,
+    accessName: 'SUB_ADMINS',
+  },
   {
     label: 'Users',
     icon: 'people',

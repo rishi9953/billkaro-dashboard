@@ -5,26 +5,21 @@ import { MatIconModule } from '@angular/material/icon';
 import { Subject } from 'rxjs';
 import { API_ENDPOINTS } from '../utilities/constant/api-url.constant';
 
-export interface PrinterOrderUser {
-  id?: string;
-  email?: string;
-  brandName?: string;
-}
-
 export interface PrinterOrder {
   id: string;
   createdAt: string;
   updatedAt?: string;
   userId?: string;
-  orderId?: string;
-  orderNumber?: string;
+  outletId?: string;
+  subscriptionId?: string;
+  outletName?: string;
+  outletAddress?: string;
+  email?: string;
+  phoneNumber?: string;
+  deliveryAddress?: string;
+  pincode?: string;
+  printedAt?: string | null;
   status: string;
-  amount?: number;
-  currency?: string;
-  quantity?: number;
-  printerModel?: string;
-  shippingAddress?: string;
-  user?: PrinterOrderUser;
   [key: string]: unknown;
 }
 
@@ -47,6 +42,8 @@ export class OrdersListComponent implements OnInit, OnDestroy {
   totalItems = 0;
   loading = false;
   error: string | null = null;
+  // Allowed status values in UI: placed, dispatched, delivered, cancelled
+  readonly statusOptions: string[] = ['placed', 'dispatched', 'delivered', 'cancelled'];
   private apiUrl = API_ENDPOINTS.ORDERS_PRINTER;
   private destroy$ = new Subject<void>();
 
@@ -96,18 +93,9 @@ export class OrdersListComponent implements OnInit, OnDestroy {
           }
         }
 
-        const apiRes = response as OrdersApiResponse;
-        if (apiRes?.status === 'success' && Array.isArray(apiRes.data)) {
-          this.orders = apiRes.data;
-          this.totalItems = apiRes.totalItems ?? apiRes.data.length;
-        } else if (response && typeof response === 'object' && (response as { data?: PrinterOrder[] }).data) {
-          const data = (response as { data: PrinterOrder[] }).data;
-          this.orders = Array.isArray(data) ? data : [];
-          this.totalItems = (response as { totalItems?: number }).totalItems ?? this.orders.length;
-        } else {
-          this.orders = [];
-          this.totalItems = 0;
-        }
+        const normalized = this.normalizeOrdersResponse(response);
+        this.orders = normalized.orders;
+        this.totalItems = normalized.totalItems;
 
         this.loading = false;
         this.cdr.detectChanges();
@@ -123,15 +111,68 @@ export class OrdersListComponent implements OnInit, OnDestroy {
     });
   }
 
-  getOrderDisplayId(order: PrinterOrder): string {
-    return order.orderNumber ?? order.orderId ?? order.id;
+  private normalizeOrdersResponse(response: unknown): { orders: PrinterOrder[]; totalItems: number } {
+    if (!response) return { orders: [], totalItems: 0 };
+
+    // Case 1: API returns raw array.
+    if (Array.isArray(response)) {
+      return { orders: response as PrinterOrder[], totalItems: response.length };
+    }
+
+    // Case 2: API returns a single order object.
+    if (typeof response === 'object') {
+      const maybe = response as Record<string, unknown>;
+
+      // Common envelope: { status, data, totalItems }
+      if (Array.isArray(maybe['data'])) {
+        const data = maybe['data'] as PrinterOrder[];
+        const totalItems = typeof maybe['totalItems'] === 'number' ? (maybe['totalItems'] as number) : data.length;
+        return { orders: data, totalItems };
+      }
+
+      // Some APIs: { orders: [...] }
+      if (Array.isArray(maybe['orders'])) {
+        const orders = maybe['orders'] as PrinterOrder[];
+        const totalItems = typeof maybe['totalItems'] === 'number' ? (maybe['totalItems'] as number) : orders.length;
+        return { orders, totalItems };
+      }
+
+      // Fallback: treat as a single order.
+      if (typeof maybe['id'] === 'string' && typeof maybe['createdAt'] === 'string') {
+        return { orders: [maybe as unknown as PrinterOrder], totalItems: 1 };
+      }
+    }
+
+    return { orders: [], totalItems: 0 };
   }
 
-  formatAmount(amount: number | undefined, currency: string | undefined): string {
-    if (amount == null) return '—';
-    const curr = (currency ?? 'INR').toUpperCase();
-    if (curr === 'INR') return `₹${Number(amount).toLocaleString('en-IN')}`;
-    return `${curr} ${Number(amount).toLocaleString()}`;
+  getOrderDisplayId(order: PrinterOrder): string {
+    return order.id;
+  }
+
+  onStatusChange(order: PrinterOrder, newStatus: string): void {
+    const next = (newStatus || '').trim();
+    if (!next || next === order.status) return;
+
+    const previous = order.status;
+    order.status = next;
+    this.cdr.detectChanges();
+
+    if (!order.id) {
+      console.warn('Cannot update status: missing order id', order);
+      return;
+    }
+
+    const url = API_ENDPOINTS.ORDERS_PRINTER_UPDATE(order.id);
+    this.http.patch(url, { status: next }).subscribe({
+      next: () => {},
+      error: (err) => {
+        console.error('Failed to update order status', err);
+        order.status = previous;
+        this.error = err?.error?.message || 'Failed to update status. Please try again.';
+        this.cdr.detectChanges();
+      },
+    });
   }
 
   formatDate(dateString: string): string {
@@ -147,9 +188,15 @@ export class OrdersListComponent implements OnInit, OnDestroy {
 
   getStatusClass(status: string): string {
     const s = (status || '').toLowerCase();
-    if (s === 'completed' || s === 'delivered' || s === 'shipped') return 'status-completed';
-    if (s === 'pending' || s === 'processing' || s === 'confirmed') return 'status-pending';
-    if (s === 'failed' || s === 'cancelled' || s === 'rejected') return 'status-failed';
+    if (s === 'completed' || s === 'delivered' || s === 'dispatched' || s === 'shipped') {
+      return 'status-completed';
+    }
+    if (s === 'pending' || s === 'processing' || s === 'confirmed' || s === 'placed') {
+      return 'status-pending';
+    }
+    if (s === 'failed' || s === 'cancelled' || s === 'rejected') {
+      return 'status-failed';
+    }
     return 'status-default';
   }
 }

@@ -9,6 +9,8 @@ export interface AdminProfile {
   email: string;
   address: string;
   phoneNumber: string;
+  /** 'admin' | 'sub_admin' – used to hide Sub Admins, Payments, Subscriptions for sub_admin */
+  role?: string;
 }
 
 export interface LoginResponse {
@@ -60,11 +62,28 @@ export class AdminAuthService {
       (data['accessToken'] as string) ??
       (data['token'] as string) ??
       '';
-    const admin = data['admin'] as AdminProfile;
-    if (!access_token || !admin?.email) {
+    const rawAdmin = data['admin'] as Record<string, unknown> | null;
+    if (!access_token || !rawAdmin?.['email']) {
       throw new Error('Invalid login response: missing token or admin');
     }
+    const admin: AdminProfile = {
+      id: String(rawAdmin['id'] ?? ''),
+      name: String(rawAdmin['name'] ?? ''),
+      email: String(rawAdmin['email'] ?? ''),
+      address: String(rawAdmin['address'] ?? ''),
+      phoneNumber: String(rawAdmin['phoneNumber'] ?? rawAdmin['phone_number'] ?? ''),
+      role: rawAdmin['role'] != null ? String(rawAdmin['role']) : undefined,
+    };
     return { access_token, admin };
+  }
+
+  /** True if current user is a sub_admin (restricted sidebar and routes). */
+  isSubAdmin(): boolean {
+    const admin = this.getCurrentAdmin();
+    const role = (admin?.role ?? '').toLowerCase();
+    const isSubAdmin = role === 'sub_admin';
+    console.log('[AdminAuth] isSubAdmin check:', { role, isSubAdmin, admin });
+    return isSubAdmin;
   }
 
   /** Store token and admin after successful login. */

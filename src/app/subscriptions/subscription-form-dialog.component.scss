@@ -122,6 +122,18 @@
   color: #ff4444;
   font-size: 12px;
   margin-top: 5px;
+
+  &.banner {
+    margin-bottom: 20px;
+    padding: 15px;
+    border-radius: 8px;
+  }
+}
+
+.success-message.banner {
+  margin-bottom: 20px;
+  padding: 15px;
+  border-radius: 8px;
 }
 
 .bullet-point-item {

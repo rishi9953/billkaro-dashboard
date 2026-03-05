@@ -1,7 +1,7 @@
 /* You can add global styles to this file, and also import other style files */
 @use '@angular/material' as mat;
 
-@import 'styles/dashboard-layout';
+@use 'styles/dashboard-layout';
 
 /* Angular Material Theme - Required for Material components to render */
 
@@ -59,7 +59,7 @@ body.theme-dark {
   --app-border-sidebar: rgba(255, 255, 255, 0.08);
 }
 
-/* Material Dialog Custom Styles */
+/* Material Dialog Custom Styles - Subscription (structure) */
 .subscription-dialog {
   .mat-mdc-dialog-container {
     padding: 0;
@@ -69,6 +69,191 @@ body.theme-dark {
     border-radius: 12px;
     overflow: hidden;
   }
+}
+
+/* Light theme - subscription dialog */
+body.theme-light .subscription-dialog .mat-mdc-dialog-surface {
+  --sub-bg: #fff;
+  --sub-bg-section: #f5f5f7;
+  --sub-text: #0f172a;
+  --sub-text-muted: #64748b;
+  --sub-border: #e2e8f0;
+  background-color: var(--sub-bg) !important;
+  color: var(--sub-text) !important;
+}
+
+body.theme-light .subscription-dialog .mat-mdc-dialog-surface .dialog-container,
+body.theme-light .subscription-dialog .mat-mdc-dialog-surface .dialog-content {
+  background-color: var(--sub-bg) !important;
+  color: var(--sub-text) !important;
+}
+
+body.theme-light .subscription-dialog .mat-mdc-dialog-surface .dialog-title,
+body.theme-light .subscription-dialog .mat-mdc-dialog-surface .section-heading,
+body.theme-light .subscription-dialog .mat-mdc-dialog-surface .form-group label,
+body.theme-light .subscription-dialog .mat-mdc-dialog-surface .checkbox-label,
+body.theme-light .subscription-dialog .mat-mdc-dialog-surface .checkbox-label span,
+body.theme-light .subscription-dialog .mat-mdc-dialog-surface .close-btn .mat-icon {
+  color: var(--sub-text) !important;
+}
+
+body.theme-light .subscription-dialog .mat-mdc-dialog-surface .close-btn {
+  color: var(--sub-text-muted) !important;
+}
+
+body.theme-light .subscription-dialog .mat-mdc-dialog-surface .close-btn:hover {
+  background-color: var(--sub-border) !important;
+}
+
+body.theme-light .subscription-dialog .mat-mdc-dialog-surface .dialog-header {
+  border-bottom-color: var(--sub-border) !important;
+}
+
+body.theme-light .subscription-dialog .mat-mdc-dialog-surface .form-card {
+  background-color: var(--sub-bg-section) !important;
+  border: 1px solid var(--sub-border) !important;
+}
+
+body.theme-light .subscription-dialog .mat-mdc-dialog-surface .form-group input,
+body.theme-light .subscription-dialog .mat-mdc-dialog-surface .form-group select,
+body.theme-light .subscription-dialog .mat-mdc-dialog-surface .form-group textarea,
+body.theme-light .subscription-dialog .mat-mdc-dialog-surface .bullet-input-wrapper input {
+  background-color: var(--sub-bg) !important;
+  color: var(--sub-text) !important;
+  border-color: var(--sub-border) !important;
+}
+
+body.theme-light .subscription-dialog .mat-mdc-dialog-surface .form-group input::placeholder,
+body.theme-light .subscription-dialog .mat-mdc-dialog-surface .form-group textarea::placeholder {
+  color: var(--sub-text-muted) !important;
+}
+
+body.theme-light .subscription-dialog .mat-mdc-dialog-surface .form-actions {
+  border-top-color: var(--sub-border) !important;
+}
+
+body.theme-light .subscription-dialog .mat-mdc-dialog-surface .remove-bullet-btn {
+  background-color: #fee2e2 !important;
+  color: #dc2626 !important;
+  border-color: #fecaca !important;
+}
+
+body.theme-light .subscription-dialog .mat-mdc-dialog-surface .remove-bullet-btn:hover {
+  background-color: #fecaca !important;
+}
+
+body.theme-light .subscription-dialog .mat-mdc-dialog-surface .add-bullet-btn {
+  background-color: #334155 !important;
+  color: #fff !important;
+}
+
+body.theme-light .subscription-dialog .mat-mdc-dialog-surface .add-bullet-btn:hover {
+  background-color: #1e293b !important;
+}
+
+body.theme-light .subscription-dialog .mat-mdc-dialog-surface .error-message.banner {
+  background-color: #fee2e2 !important;
+  color: #b91c1c !important;
+}
+
+body.theme-light .subscription-dialog .mat-mdc-dialog-surface .success-message.banner {
+  background-color: #d1fae5 !important;
+  color: #065f46 !important;
+}
+
+/* Dark theme - subscription dialog */
+body.theme-dark .subscription-dialog .mat-mdc-dialog-surface {
+  --sub-bg: #1e293b;
+  --sub-bg-section: #0f172a;
+  --sub-text: #f1f5f9;
+  --sub-text-muted: #94a3b8;
+  --sub-border: #334155;
+  background-color: var(--sub-bg) !important;
+  color: var(--sub-text) !important;
+}
+
+body.theme-dark .subscription-dialog .mat-mdc-dialog-surface .dialog-container,
+body.theme-dark .subscription-dialog .mat-mdc-dialog-surface .dialog-content {
+  background-color: var(--sub-bg) !important;
+  color: var(--sub-text) !important;
+}
+
+body.theme-dark .subscription-dialog .mat-mdc-dialog-surface .dialog-title,
+body.theme-dark .subscription-dialog .mat-mdc-dialog-surface .section-heading,
+body.theme-dark .subscription-dialog .mat-mdc-dialog-surface .form-group label,
+body.theme-dark .subscription-dialog .mat-mdc-dialog-surface .checkbox-label,
+body.theme-dark .subscription-dialog .mat-mdc-dialog-surface .checkbox-label span,
+body.theme-dark .subscription-dialog .mat-mdc-dialog-surface .close-btn .mat-icon {
+  color: var(--sub-text) !important;
+}
+
+body.theme-dark .subscription-dialog .mat-mdc-dialog-surface .close-btn {
+  color: var(--sub-text-muted) !important;
+}
+
+body.theme-dark .subscription-dialog .mat-mdc-dialog-surface .close-btn:hover {
+  background-color: var(--sub-border) !important;
+}
+
+body.theme-dark .subscription-dialog .mat-mdc-dialog-surface .dialog-header {
+  border-bottom-color: var(--sub-border) !important;
+}
+
+body.theme-dark .subscription-dialog .mat-mdc-dialog-surface .form-card {
+  background-color: var(--sub-bg-section) !important;
+  border: 1px solid var(--sub-border) !important;
+}
+
+body.theme-dark .subscription-dialog .mat-mdc-dialog-surface .form-group input,
+body.theme-dark .subscription-dialog .mat-mdc-dialog-surface .form-group select,
+body.theme-dark .subscription-dialog .mat-mdc-dialog-surface .form-group textarea,
+body.theme-dark .subscription-dialog .mat-mdc-dialog-surface .bullet-input-wrapper input {
+  background-color: var(--sub-bg) !important;
+  color: var(--sub-text) !important;
+  border-color: var(--sub-border) !important;
+}
+
+body.theme-dark .subscription-dialog .mat-mdc-dialog-surface .form-group input::placeholder,
+body.theme-dark .subscription-dialog .mat-mdc-dialog-surface .form-group textarea::placeholder {
+  color: var(--sub-text-muted) !important;
+}
+
+body.theme-dark .subscription-dialog .mat-mdc-dialog-surface .form-actions {
+  border-top-color: var(--sub-border) !important;
+}
+
+body.theme-dark .subscription-dialog .mat-mdc-dialog-surface .remove-bullet-btn {
+  background-color: rgba(220, 38, 38, 0.25) !important;
+  color: #fca5a5 !important;
+  border-color: rgba(220, 38, 38, 0.4) !important;
+}
+
+body.theme-dark .subscription-dialog .mat-mdc-dialog-surface .remove-bullet-btn:hover {
+  background-color: rgba(220, 38, 38, 0.4) !important;
+}
+
+body.theme-dark .subscription-dialog .mat-mdc-dialog-surface .add-bullet-btn {
+  background-color: #334155 !important;
+  color: #e2e8f0 !important;
+}
+
+body.theme-dark .subscription-dialog .mat-mdc-dialog-surface .add-bullet-btn:hover {
+  background-color: #475569 !important;
+}
+
+body.theme-dark .subscription-dialog .mat-mdc-dialog-surface .error-message {
+  color: #fca5a5 !important;
+}
+
+body.theme-dark .subscription-dialog .mat-mdc-dialog-surface .error-message.banner {
+  background-color: rgba(220, 38, 38, 0.2) !important;
+  border: 1px solid rgba(220, 38, 38, 0.4) !important;
+}
+
+body.theme-dark .subscription-dialog .mat-mdc-dialog-surface .success-message.banner {
+  background-color: rgba(34, 197, 94, 0.2) !important;
+  color: #86efac !important;
+  border: 1px solid rgba(34, 197, 94, 0.4) !important;
 }
 
 /* Service dialog - inherit app theme (light/dark) */
@@ -83,6 +268,148 @@ body.theme-dark {
     background-color: var(--app-bg-card) !important;
     color: var(--app-text-primary) !important;
   }
+}
+
+/* Sub admin dialog - structure */
+.sub-admin-dialog {
+  .mat-mdc-dialog-container {
+    padding: 0;
+  }
+
+  .mat-mdc-dialog-surface {
+    border-radius: 12px;
+    overflow: hidden;
+  }
+}
+
+/* Light theme - sub admin dialog */
+body.theme-light .sub-admin-dialog .mat-mdc-dialog-surface {
+  --sa-bg: #fff;
+  --sa-bg-section: #f5f5f7;
+  --sa-text: #0f172a;
+  --sa-text-muted: #64748b;
+  --sa-border: #e2e8f0;
+  background-color: var(--sa-bg) !important;
+  color: var(--sa-text) !important;
+}
+
+body.theme-light .sub-admin-dialog .mat-mdc-dialog-surface .dialog-container,
+body.theme-light .sub-admin-dialog .mat-mdc-dialog-surface .dialog-content {
+  background-color: var(--sa-bg) !important;
+  color: var(--sa-text) !important;
+}
+
+body.theme-light .sub-admin-dialog .mat-mdc-dialog-surface .dialog-title,
+body.theme-light .sub-admin-dialog .mat-mdc-dialog-surface .form-group label,
+body.theme-light .sub-admin-dialog .mat-mdc-dialog-surface .close-btn .mat-icon {
+  color: var(--sa-text) !important;
+}
+
+body.theme-light .sub-admin-dialog .mat-mdc-dialog-surface .close-btn {
+  color: var(--sa-text-muted) !important;
+}
+
+body.theme-light .sub-admin-dialog .mat-mdc-dialog-surface .close-btn:hover {
+  background-color: var(--sa-border) !important;
+}
+
+body.theme-light .sub-admin-dialog .mat-mdc-dialog-surface .dialog-header {
+  border-bottom-color: var(--sa-border) !important;
+}
+
+body.theme-light .sub-admin-dialog .mat-mdc-dialog-surface .form-card {
+  background-color: var(--sa-bg-section) !important;
+  border-color: var(--sa-border) !important;
+}
+
+body.theme-light .sub-admin-dialog .mat-mdc-dialog-surface .form-group input,
+body.theme-light .sub-admin-dialog .mat-mdc-dialog-surface .password-wrapper {
+  background-color: var(--sa-bg) !important;
+  color: var(--sa-text) !important;
+  border-color: var(--sa-border) !important;
+}
+
+body.theme-light .sub-admin-dialog .mat-mdc-dialog-surface .form-group input::placeholder {
+  color: var(--sa-text-muted) !important;
+}
+
+body.theme-light .sub-admin-dialog .mat-mdc-dialog-surface .form-group input[readonly],
+body.theme-light .sub-admin-dialog .mat-mdc-dialog-surface .password-wrapper input {
+  background-color: transparent !important;
+}
+
+body.theme-light .sub-admin-dialog .mat-mdc-dialog-surface .password-toggle,
+body.theme-light .sub-admin-dialog .mat-mdc-dialog-surface .password-toggle .mat-icon {
+  color: var(--sa-text-muted) !important;
+}
+
+body.theme-light .sub-admin-dialog .mat-mdc-dialog-surface .form-actions {
+  border-top-color: var(--sa-border) !important;
+}
+
+/* Dark theme - sub admin dialog */
+body.theme-dark .sub-admin-dialog .mat-mdc-dialog-surface {
+  --sa-bg: #1e293b;
+  --sa-bg-section: #0f172a;
+  --sa-text: #f1f5f9;
+  --sa-text-muted: #94a3b8;
+  --sa-border: #334155;
+  background-color: var(--sa-bg) !important;
+  color: var(--sa-text) !important;
+}
+
+body.theme-dark .sub-admin-dialog .mat-mdc-dialog-surface .dialog-container,
+body.theme-dark .sub-admin-dialog .mat-mdc-dialog-surface .dialog-content {
+  background-color: var(--sa-bg) !important;
+  color: var(--sa-text) !important;
+}
+
+body.theme-dark .sub-admin-dialog .mat-mdc-dialog-surface .dialog-title,
+body.theme-dark .sub-admin-dialog .mat-mdc-dialog-surface .form-group label,
+body.theme-dark .sub-admin-dialog .mat-mdc-dialog-surface .close-btn .mat-icon {
+  color: var(--sa-text) !important;
+}
+
+body.theme-dark .sub-admin-dialog .mat-mdc-dialog-surface .close-btn {
+  color: var(--sa-text-muted) !important;
+}
+
+body.theme-dark .sub-admin-dialog .mat-mdc-dialog-surface .close-btn:hover {
+  background-color: var(--sa-border) !important;
+}
+
+body.theme-dark .sub-admin-dialog .mat-mdc-dialog-surface .dialog-header {
+  border-bottom-color: var(--sa-border) !important;
+}
+
+body.theme-dark .sub-admin-dialog .mat-mdc-dialog-surface .form-card {
+  background-color: var(--sa-bg-section) !important;
+  border-color: var(--sa-border) !important;
+}
+
+body.theme-dark .sub-admin-dialog .mat-mdc-dialog-surface .form-group input,
+body.theme-dark .sub-admin-dialog .mat-mdc-dialog-surface .password-wrapper {
+  background-color: var(--sa-bg) !important;
+  color: var(--sa-text) !important;
+  border-color: var(--sa-border) !important;
+}
+
+body.theme-dark .sub-admin-dialog .mat-mdc-dialog-surface .form-group input::placeholder {
+  color: var(--sa-text-muted) !important;
+}
+
+body.theme-dark .sub-admin-dialog .mat-mdc-dialog-surface .form-group input[readonly],
+body.theme-dark .sub-admin-dialog .mat-mdc-dialog-surface .password-wrapper input {
+  background-color: transparent !important;
+}
+
+body.theme-dark .sub-admin-dialog .mat-mdc-dialog-surface .password-toggle,
+body.theme-dark .sub-admin-dialog .mat-mdc-dialog-surface .password-toggle .mat-icon {
+  color: var(--sa-text-muted) !important;
+}
+
+body.theme-dark .sub-admin-dialog .mat-mdc-dialog-surface .form-actions {
+  border-top-color: var(--sa-border) !important;
 }
 
 /* User details dialog - structure */

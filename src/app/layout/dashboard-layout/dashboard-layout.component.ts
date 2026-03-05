@@ -34,17 +34,40 @@ export class DashboardLayoutComponent implements OnInit, OnDestroy {
     public themeService: ThemeService
   ) {}
 
-  ngOnInit(): void {
-    this.pageDashboardLink = SIDEBAR_ROUTING;
-    this.pageDashboardLinkBottom = SIDEBAR_ROUTING_BOTTOM;
-    this.sidebarCollapsed = localStorage.getItem(DashboardLayoutComponent.SIDEBAR_COLLAPSED_KEY) === 'true';
-    this.updateCurrentPageTitle();
+  /** Tabs hidden for sub_admin: Sub Admins, Payments, Subscriptions. */
+  private static readonly SUB_ADMIN_HIDDEN_ACCESS = new Set(['SUB_ADMINS', 'PAYMENTS', 'SUBSCRIPTIONS']);
 
+  ngOnInit(): void {
     const admin = this.adminAuth.getCurrentAdmin();
+    const isSubAdmin = this.adminAuth.isSubAdmin();
+    
+    // Debug logging (remove in production)
+    console.log('[DashboardLayout] Current admin:', admin);
+    console.log('[DashboardLayout] Is sub_admin:', isSubAdmin);
+    console.log('[DashboardLayout] Admin role:', admin?.role);
+    
+    this.pageDashboardLink = isSubAdmin
+      ? SIDEBAR_ROUTING.filter(
+          (item) => {
+            const shouldHide = item.accessName && DashboardLayoutComponent.SUB_ADMIN_HIDDEN_ACCESS.has(item.accessName);
+            if (shouldHide) {
+              console.log('[DashboardLayout] Hiding tab for sub_admin:', item.label, item.accessName);
+            }
+            return !shouldHide;
+          }
+        )
+      : SIDEBAR_ROUTING;
+    this.pageDashboardLinkBottom = SIDEBAR_ROUTING_BOTTOM;
+    
+    console.log('[DashboardLayout] Visible tabs:', this.pageDashboardLink.map(t => t.label));
+    this.sidebarCollapsed = localStorage.getItem(DashboardLayoutComponent.SIDEBAR_COLLAPSED_KEY) === 'true';
+    
     if (admin) {
       this.name = admin.name;
       this.email = admin.email;
     }
+    
+    this.updateCurrentPageTitle();
 
     // Listen to route changes to update page title
     this.router.events

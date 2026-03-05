@@ -8,5 +8,12 @@ export const DASHBOARD_ROUTES: Routes = [
     path: 'users',
     loadChildren: () =>
       import('../users/users.routes').then((m) => m.USERS_ROUTES)
+  },
+  {
+    path: 'sub-admins',
+    loadComponent: () =>
+      import('../sub-admins/sub-admins-list.component').then(
+        (m) => m.SubAdminsListComponent
+      ),
   }
 ];
