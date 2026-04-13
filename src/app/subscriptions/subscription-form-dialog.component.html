@@ -11,6 +11,20 @@
       <!-- Plan Details Section -->
       <div class="form-card">
         <div class="form-group">
+          <label for="platform">Platform *</label>
+          <select
+            id="platform"
+            formControlName="platform"
+            [class.error]="submitted && f['platform'].errors"
+            aria-label="Subscription plan platform">
+            <option *ngFor="let opt of platformOptions" [value]="opt.value">{{ opt.label }}</option>
+          </select>
+          <div class="error-message" *ngIf="submitted && f['platform'].errors">
+            <span *ngIf="f['platform'].errors['required']">Platform is required</span>
+          </div>
+        </div>
+
+        <div class="form-group">
           <label for="title">Title *</label>
           <input
             type="text"

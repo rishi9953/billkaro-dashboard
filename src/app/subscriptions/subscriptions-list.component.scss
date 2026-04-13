@@ -154,6 +154,14 @@
       margin: 0;
     }
 
+    .card-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      justify-content: flex-end;
+    }
+
     .plan-badge {
       background-color: #e8e8ff;
       color: #5a67d8;
@@ -161,6 +169,16 @@
       border-radius: 12px;
       font-size: 12px;
       font-weight: 500;
+
+      &--platform.plan-badge--desktop {
+        background-color: #e3f2fd;
+        color: #1565c0;
+      }
+
+      &--platform:not(.plan-badge--desktop) {
+        background-color: #fce4ec;
+        color: #c2185b;
+      }
     }
   }
 

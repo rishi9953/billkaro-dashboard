@@ -6,7 +6,7 @@ import { MatDialogRef, MatDialogModule, MAT_DIALOG_DATA } from '@angular/materia
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { API_ENDPOINTS } from '../utilities/constant/api-url.constant';
-import { SubscriptionPlan } from './subscriptions-list.component';
+import { SubscriptionPlan, SubscriptionPlanPlatform } from './subscriptions-list.component';
 
 @Component({
   selector: 'app-subscription-form-dialog',
@@ -22,6 +22,11 @@ import { SubscriptionPlan } from './subscriptions-list.component';
   styleUrls: ['./subscription-form-dialog.component.scss']
 })
 export class SubscriptionFormDialogComponent implements OnInit {
+  readonly platformOptions: { value: SubscriptionPlanPlatform; label: string }[] = [
+    { value: 'mobile', label: 'Mobile' },
+    { value: 'desktop', label: 'Desktop' }
+  ];
+
   subscriptionForm: FormGroup;
   submitted = false;
   loading = false;
@@ -37,6 +42,7 @@ export class SubscriptionFormDialogComponent implements OnInit {
     @Inject(MAT_DIALOG_DATA) public data: SubscriptionPlan | null
   ) {
     this.subscriptionForm = this.formBuilder.group({
+      platform: ['mobile' as SubscriptionPlanPlatform, [Validators.required]],
       title: ['', [Validators.required]],
       price: ['', [Validators.required, Validators.min(0)]],
       discountedPrice: ['', [Validators.required, Validators.min(0)]],
@@ -69,6 +75,7 @@ export class SubscriptionFormDialogComponent implements OnInit {
 
     // Populate form fields
     this.subscriptionForm.patchValue({
+      platform: this.normalizePlatform(plan.platform),
       title: plan.title,
       price: plan.price,
       discountedPrice: plan.discountedPrice,
@@ -94,6 +101,10 @@ export class SubscriptionFormDialogComponent implements OnInit {
 
   get f() {
     return this.subscriptionForm.controls;
+  }
+
+  private normalizePlatform(value: string | undefined): SubscriptionPlanPlatform {
+    return value === 'desktop' ? 'desktop' : 'mobile';
   }
 
   get bulletPointsFormArray(): FormArray {
@@ -133,6 +144,7 @@ export class SubscriptionFormDialogComponent implements OnInit {
 
     // Prepare form data according to API requirements
     const formData = {
+      platform: this.subscriptionForm.value.platform as SubscriptionPlanPlatform,
       title: this.subscriptionForm.value.title,
       price: parseFloat(this.subscriptionForm.value.price),
       discountedPrice: parseFloat(this.subscriptionForm.value.discountedPrice),
@@ -259,6 +271,7 @@ export class SubscriptionFormDialogComponent implements OnInit {
     this.bulletPointsFormArray.clear();
     this.subscriptionForm.reset();
     this.subscriptionForm.patchValue({
+      platform: 'mobile',
       rating: '4.8',
       showImage: true,
       withPrinter: false,

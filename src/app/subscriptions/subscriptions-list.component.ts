@@ -8,6 +8,8 @@ import { Subject } from 'rxjs';
 import { SubscriptionFormDialogComponent } from './subscription-form-dialog.component';
 import { API_ENDPOINTS } from '../utilities/constant/api-url.constant';
 
+export type SubscriptionPlanPlatform = 'mobile' | 'desktop';
+
 export interface SubscriptionPlan {
   id: string;
   createdAt: string;
@@ -21,6 +23,7 @@ export interface SubscriptionPlan {
   duration: number; // Duration in months
   tax?: number; // Tax percentage (e.g., 18 for 18%)
   withPrinter?: boolean;
+  platform?: SubscriptionPlanPlatform;
 }
 
 interface ApiResponse {
@@ -152,6 +155,10 @@ export class SubscriptionsListComponent implements OnInit, OnDestroy {
         this.fetchSubscriptionPlans();
       }
     });
+  }
+
+  getPlatformLabel(plan: SubscriptionPlan): string {
+    return plan.platform === 'desktop' ? 'Desktop' : 'Mobile';
   }
 
   formatPrice(price: number): string {

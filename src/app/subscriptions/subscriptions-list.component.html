@@ -27,7 +27,15 @@
     <div *ngFor="let plan of subscriptionPlans" class="subscription-card">
       <div class="card-header">
         <h3 class="plan-title">{{ plan.title }}</h3>
-        <span class="plan-badge" *ngIf="plan.showImage">Image</span>
+        <div class="card-badges">
+          <span
+            class="plan-badge plan-badge--platform"
+            [class.plan-badge--desktop]="plan.platform === 'desktop'"
+            [attr.aria-label]="'Platform: ' + getPlatformLabel(plan)">
+            {{ getPlatformLabel(plan) }}
+          </span>
+          <span class="plan-badge" *ngIf="plan.showImage">Image</span>
+        </div>
       </div>
       
       <div class="card-body">
