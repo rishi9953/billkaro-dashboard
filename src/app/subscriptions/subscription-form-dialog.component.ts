@@ -143,6 +143,10 @@ export class SubscriptionFormDialogComponent implements OnInit {
     }
 
     // Prepare form data according to API requirements
+    const normalizedBulletPoints = (this.subscriptionForm.value.bulletPoints as string[])
+      .map((point) => point.trim())
+      .filter((point) => point.length > 0);
+
     const formData = {
       platform: this.subscriptionForm.value.platform as SubscriptionPlanPlatform,
       title: this.subscriptionForm.value.title,
@@ -150,7 +154,7 @@ export class SubscriptionFormDialogComponent implements OnInit {
       discountedPrice: parseFloat(this.subscriptionForm.value.discountedPrice),
       tax: parseFloat(this.subscriptionForm.value.tax) || 0,
       subtitle: this.subscriptionForm.value.subtitle,
-      bulletPoints: this.subscriptionForm.value.bulletPoints.filter((point: string) => point.trim() !== ''),
+      bulletPoints: normalizedBulletPoints,
       showImage: this.subscriptionForm.value.showImage || false,
       withPrinter: this.subscriptionForm.value.withPrinter ?? false,
       duration: parseInt(this.subscriptionForm.value.duration, 10)
@@ -165,11 +169,10 @@ export class SubscriptionFormDialogComponent implements OnInit {
 
     if (this.isEditMode && this.data) {
       // Update existing plan using PUT /api/subscription-plans/{id}
-      // Note: Backend doesn't support PATCH, using PUT instead
       const updateUrl = API_ENDPOINTS.SUBSCRIPTION_PLAN_UPDATE(this.data.id);
       console.log('Updating subscription plan:', updateUrl);
       console.log('Request payload:', formData);
-      this.http.patch(updateUrl, formData, { headers }).subscribe({
+      this.http.put(updateUrl, formData, { headers }).subscribe({
         next: (response) => {
           this.loading = false;
           this.success = true;

@@ -5,9 +5,10 @@ import { AdminAuthService } from './admin-auth.service';
 export const authTokenInterceptor: HttpInterceptorFn = (req, next) => {
   const auth = inject(AdminAuthService);
   const token = auth.getAccessToken();
-  if (token) {
+  if (token && !req.headers.has('Authorization')) {
+    const normalizedToken = token.replace(/^Bearer\s+/i, '').trim();
     req = req.clone({
-      setHeaders: { Authorization: `Bearer ${token}` },
+      setHeaders: { Authorization: `Bearer ${normalizedToken}` },
     });
   }
   return next(req);

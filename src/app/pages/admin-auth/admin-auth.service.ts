@@ -39,6 +39,8 @@ interface StoredSession {
   admin: AdminProfile;
 }
 
+type UnknownRecord = Record<string, unknown>;
+
 @Injectable({ providedIn: 'root' })
 export class AdminAuthService {
   constructor(private http: HttpClient) {}
@@ -56,15 +58,14 @@ export class AdminAuthService {
 
   /** Support multiple response shapes: { access_token, admin }, { data: { ... } }, camelCase. */
   private normalizeLoginResponse(res: Record<string, unknown>): LoginResponse {
-    const data = (res['data'] as Record<string, unknown>) ?? res;
-    const access_token =
-      (data['access_token'] as string) ??
-      (data['accessToken'] as string) ??
-      (data['token'] as string) ??
-      '';
-    const rawAdmin = data['admin'] as Record<string, unknown> | null;
-    if (!access_token || !rawAdmin?.['email']) {
-      throw new Error('Invalid login response: missing token or admin');
+    const data = this.asRecord(res['data']) ?? res;
+    const access_token = this.normalizeToken(
+      this.getFirstString(data, ['access_token', 'accessToken', 'token', 'jwt', 'jwtToken'])
+    );
+    const rawAdmin =
+      this.asRecord(data['admin']) ?? this.asRecord(data['user']) ?? this.asRecord(data['profile']) ?? {};
+    if (!access_token) {
+      throw new Error('Invalid login response: missing token');
     }
     const admin: AdminProfile = {
       id: String(rawAdmin['id'] ?? ''),
@@ -88,7 +89,7 @@ export class AdminAuthService {
 
   /** Store token and admin after successful login. */
   setSession(access_token: string, admin: AdminProfile): void {
-    const session: StoredSession = { access_token, admin };
+    const session: StoredSession = { access_token: this.normalizeToken(access_token), admin };
     localStorage.setItem(SESSION_KEY, JSON.stringify(session));
   }
 
@@ -140,5 +141,21 @@ export class AdminAuthService {
     } catch {
       return null;
     }
+  }
+
+  private normalizeToken(token: string): string {
+    return token.replace(/^Bearer\s+/i, '').trim();
+  }
+
+  private getFirstString(source: UnknownRecord, keys: string[]): string {
+    for (const key of keys) {
+      const value = source[key];
+      if (typeof value === 'string' && value.trim()) return value;
+    }
+    return '';
+  }
+
+  private asRecord(value: unknown): UnknownRecord | null {
+    return value !== null && typeof value === 'object' ? (value as UnknownRecord) : null;
   }
 }
