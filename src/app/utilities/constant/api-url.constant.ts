@@ -1,9 +1,13 @@
 /**
  * API Base URL Configuration
- * Use relative `/api` so Netlify can proxy requests to the backend.
- * This avoids browser certificate errors from calling backend IPs directly.
+ * GitHub Pages doesn't support server-side proxies, so we use the direct API URL
+ * For local development, it also uses the direct URL
  */
-export const API_BASE_URL = '/api';
+export const API_BASE_URL = 
+'https://65.2.81.212/api';
+  // 'https://nmsmfkdd-3000.inc1.devtunnels.ms/api';
+
+// 'https://65.2.81.212/api'
 
 /**
  * API Endpoints
