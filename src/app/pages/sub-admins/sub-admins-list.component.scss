@@ -166,10 +166,15 @@
       margin: 0;
     }
 
-    .edit-btn {
+    .card-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .edit-btn,
+    .delete-btn {
       background-color: transparent;
-      border: 1px solid #5a67d8;
-      color: #5a67d8;
       border-radius: 8px;
       padding: 8px;
       cursor: pointer;
@@ -184,8 +189,28 @@
         height: 20px;
       }
 
-      &:hover {
+      &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+    }
+
+    .edit-btn {
+      border: 1px solid #5a67d8;
+      color: #5a67d8;
+
+      &:hover:not(:disabled) {
         background-color: #5a67d8;
+        color: white;
+      }
+    }
+
+    .delete-btn {
+      border: 1px solid #e53e3e;
+      color: #e53e3e;
+
+      &:hover:not(:disabled) {
+        background-color: #e53e3e;
         color: white;
       }
     }

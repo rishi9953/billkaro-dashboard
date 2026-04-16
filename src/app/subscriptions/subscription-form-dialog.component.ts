@@ -168,11 +168,11 @@ export class SubscriptionFormDialogComponent implements OnInit {
     });
 
     if (this.isEditMode && this.data) {
-      // Update existing plan using PUT /api/subscription-plans/{id}
+      // Update existing plan using PATCH /api/subscription-plans/{id}
       const updateUrl = API_ENDPOINTS.SUBSCRIPTION_PLAN_UPDATE(this.data.id);
       console.log('Updating subscription plan:', updateUrl);
       console.log('Request payload:', formData);
-      this.http.put(updateUrl, formData, { headers }).subscribe({
+      this.http.patch(updateUrl, formData, { headers }).subscribe({
         next: (response) => {
           this.loading = false;
           this.success = true;

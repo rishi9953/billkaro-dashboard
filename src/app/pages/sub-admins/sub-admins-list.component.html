@@ -29,9 +29,20 @@
         <div class="card-header">
           <div class="avatar">{{ (admin.name && admin.name.charAt(0).toUpperCase()) || '?' }}</div>
           <h3 class="admin-name">{{ admin.name }}</h3>
-          <button class="edit-btn" (click)="openEditDialog(admin)" aria-label="Edit sub admin" title="Edit">
-            <mat-icon>edit</mat-icon>
-          </button>
+          <div class="card-actions">
+            <button class="edit-btn" (click)="openEditDialog(admin)" aria-label="Edit sub admin" title="Edit">
+              <mat-icon>edit</mat-icon>
+            </button>
+            <button
+              class="delete-btn"
+              (click)="deleteSubAdmin(admin)"
+              [disabled]="isDeleting(admin)"
+              aria-label="Delete sub admin"
+              title="Delete"
+            >
+              <mat-icon>{{ isDeleting(admin) ? 'hourglass_top' : 'delete' }}</mat-icon>
+            </button>
+          </div>
         </div>
         <div class="card-body">
           <p class="admin-email">

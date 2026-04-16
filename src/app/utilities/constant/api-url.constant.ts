@@ -1,13 +1,9 @@
 /**
  * API Base URL Configuration
- * GitHub Pages doesn't support server-side proxies, so we use the direct API URL
- * For local development, it also uses the direct URL
+ * Use relative `/api` so Netlify can proxy requests to the backend.
+ * This avoids browser certificate errors from calling backend IPs directly.
  */
-export const API_BASE_URL = 
-'https://65.2.81.212/api';
-  // 'https://nmsmfkdd-3000.inc1.devtunnels.ms/api';
-
-// 'https://65.2.81.212/api'
+export const API_BASE_URL = '/api';
 
 /**
  * API Endpoints
@@ -16,8 +12,9 @@ export const API_BASE_URL =
 export const API_ENDPOINTS = {
   USERS: `${API_BASE_URL}/users`,
   /** Sub admins: GET list, POST create. Response: { subAdmins: SubAdmin[] } */
-  SUB_ADMINS: `${API_BASE_URL}/auth/admin/sub-admins`,
+  SUB_ADMINS: `${API_BASE_URL}/auth/admin/sub-admin`,
   SUB_ADMIN_UPDATE: (id: string) => `${API_BASE_URL}/auth/admin/sub-admins/${id}`,
+  SUB_ADMIN_DELETE: (subadminId: string) => `${API_BASE_URL}/auth/admin/sub-admin/${subadminId}`,
   SUBSCRIPTION_PLANS: `${API_BASE_URL}/subscription-plans`,
   /**
    * Get subscription plan update endpoint (uses PUT method)

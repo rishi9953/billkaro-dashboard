@@ -10,6 +10,7 @@ import { API_ENDPOINTS } from '../../utilities/constant/api-url.constant';
 
 export interface SubAdmin {
   id: string;
+  subadminId?: string;
   name: string;
   email: string;
   address?: string;
@@ -35,7 +36,8 @@ export class SubAdminsListComponent implements OnInit, OnDestroy {
   subAdmins: SubAdmin[] = [];
   loading = false;
   error: string | null = null;
-  private apiUrl = API_ENDPOINTS.SUB_ADMINS;
+  deletingIds = new Set<string>();
+  private apiUrl = `${API_ENDPOINTS.SUB_ADMINS}s`;
   private destroy$ = new Subject<void>();
 
   constructor(
@@ -129,6 +131,44 @@ export class SubAdminsListComponent implements OnInit, OnDestroy {
         this.fetchSubAdmins();
       }
     });
+  }
+
+  deleteSubAdmin(admin: SubAdmin): void {
+    const subadminId = this.getSubadminId(admin);
+    if (!subadminId) {
+      this.error = 'Unable to delete sub admin: missing subadminId.';
+      this.cdr.detectChanges();
+      return;
+    }
+
+    const confirmed = window.confirm(`Delete ${admin.name}? This action cannot be undone.`);
+    if (!confirmed) return;
+
+    this.error = null;
+    this.deletingIds.add(subadminId);
+    this.cdr.detectChanges();
+
+    this.http.delete(API_ENDPOINTS.SUB_ADMIN_DELETE(subadminId)).subscribe({
+      next: () => {
+        this.subAdmins = this.subAdmins.filter((item) => this.getSubadminId(item) !== subadminId);
+        this.deletingIds.delete(subadminId);
+        this.cdr.detectChanges();
+      },
+      error: (error) => {
+        console.error('Error deleting sub admin:', error);
+        this.error = error.error?.message || error.message || 'Failed to delete sub admin. Please try again later.';
+        this.deletingIds.delete(subadminId);
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  isDeleting(admin: SubAdmin): boolean {
+    return this.deletingIds.has(this.getSubadminId(admin));
+  }
+
+  private getSubadminId(admin: SubAdmin): string {
+    return (admin.subadminId || admin.id || '').trim();
   }
 
   formatDate(dateString: string): string {
