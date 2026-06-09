@@ -1,94 +1,198 @@
 <div class="orders-list-container">
   <div class="orders-header">
-    <h1 class="page-title">Printer Orders</h1>
-    <p class="total-count" *ngIf="!loading && !error && totalItems > 0">{{ totalItems }} order{{ totalItems !== 1 ? 's' : '' }} total</p>
+    <div class="header-text">
+      <h1 class="page-title">Printer Orders</h1>
+      <p class="page-subtitle">Manage thermal printer deliveries from subscription purchases</p>
+    </div>
+    <button class="refresh-btn" type="button" (click)="fetchOrders()" [disabled]="loading" title="Refresh orders">
+      <mat-icon>refresh</mat-icon>
+      <span>Refresh</span>
+    </button>
   </div>
 
-  <!-- Loading State -->
+  <!-- Stats -->
+  <div class="stats-row" *ngIf="!loading && !error && orders.length > 0">
+    <div class="stat-card stat-card--all">
+      <mat-icon>inventory_2</mat-icon>
+      <div>
+        <span class="stat-value">{{ getStatusCount('all') }}</span>
+        <span class="stat-label">Total Orders</span>
+      </div>
+    </div>
+    <div class="stat-card stat-card--placed">
+      <mat-icon>schedule</mat-icon>
+      <div>
+        <span class="stat-value">{{ getStatusCount('placed') }}</span>
+        <span class="stat-label">Placed</span>
+      </div>
+    </div>
+    <div class="stat-card stat-card--dispatched">
+      <mat-icon>local_shipping</mat-icon>
+      <div>
+        <span class="stat-value">{{ getStatusCount('dispatched') }}</span>
+        <span class="stat-label">Dispatched</span>
+      </div>
+    </div>
+    <div class="stat-card stat-card--delivered">
+      <mat-icon>check_circle</mat-icon>
+      <div>
+        <span class="stat-value">{{ getStatusCount('delivered') }}</span>
+        <span class="stat-label">Delivered</span>
+      </div>
+    </div>
+    <div class="stat-card stat-card--cancelled">
+      <mat-icon>cancel</mat-icon>
+      <div>
+        <span class="stat-value">{{ getStatusCount('cancelled') }}</span>
+        <span class="stat-label">Cancelled</span>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="statusUpdateMessage" class="status-update-banner">
+    <mat-icon>mark_email_read</mat-icon>
+    <span>{{ statusUpdateMessage }}</span>
+  </div>
+
+  <!-- Filter tabs -->
+  <div class="filter-tabs" *ngIf="!loading && !error && orders.length > 0">
+    <button
+      *ngFor="let tab of filterTabs"
+      type="button"
+      class="filter-tab"
+      [class.active]="statusFilter === tab.key"
+      (click)="setStatusFilter(tab.key)"
+    >
+      <mat-icon>{{ tab.icon }}</mat-icon>
+      <span>{{ tab.label }}</span>
+      <span class="filter-count">{{ getStatusCount(tab.key) }}</span>
+    </button>
+  </div>
+
+  <!-- Loading -->
   <div *ngIf="loading" class="loading-container">
     <div class="loading-spinner"></div>
     <p>Loading printer orders...</p>
   </div>
 
-  <!-- Error State -->
+  <!-- Error -->
   <div *ngIf="error && !loading" class="error-container">
     <mat-icon class="error-icon">error_outline</mat-icon>
     <p class="error-message">{{ error }}</p>
-    <button class="retry-btn" (click)="fetchOrders()">Retry</button>
+    <button class="retry-btn" type="button" (click)="fetchOrders()">Retry</button>
   </div>
 
-  <!-- Orders List -->
+  <!-- Content -->
   <div *ngIf="!loading && !error" class="orders-content">
     <div *ngIf="orders.length === 0" class="empty-state">
-      <mat-icon>print</mat-icon>
-      <p>No printer orders found</p>
+      <div class="empty-icon-wrap">
+        <mat-icon>print_disabled</mat-icon>
+      </div>
+      <h2>No printer orders yet</h2>
+      <p>Orders appear here when customers purchase a plan with a thermal printer from the BillKaro app or Windows software.</p>
     </div>
 
-    <div *ngIf="orders.length > 0" class="orders-table-wrapper">
-      <table class="orders-table" role="grid">
-        <thead>
-          <tr>
-            <th scope="col">Order ID</th>
-            <th scope="col">Outlet</th>
-            <th scope="col">Contact</th>
-            <th scope="col">Delivery</th>
-            <th scope="col">Pincode</th>
-            <th scope="col">Status</th>
-            <th scope="col">Date</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let order of orders" class="order-row">
-            <td class="order-id">{{ getOrderDisplayId(order) }}</td>
-            <td class="user-cell">
-              <div class="user-cell-inner">
-                <span class="user-email">{{ order.outletName || '—' }}</span>
-                <span class="user-brand" *ngIf="order.outletAddress">{{ order.outletAddress }}</span>
-              </div>
-            </td>
-            <td class="quantity-cell">
-              <div class="contact-cell">
-                <div class="contact-text-block">
-                  <span class="contact-email">{{ order.email || '—' }}</span>
-                  <span class="contact-phone" *ngIf="order.phoneNumber">{{ order.phoneNumber }}</span>
-                </div>
-                <a
-                  *ngIf="order.phoneNumber"
-                  class="call-link"
-                  [href]="'tel:' + order.phoneNumber"
-                  (click)="$event.stopPropagation()"
-                >
-                  Call
-                </a>
-              </div>
-            </td>
-            <td class="date-cell">
-              <div class="address-cell">
-                <span class="address-main">{{ order.deliveryAddress || '—' }}</span>
-                <span class="address-sub" *ngIf="order.outletAddress">
-                  Outlet: {{ order.outletAddress }}
-                </span>
-              </div>
-            </td>
-            <td class="quantity-cell">{{ order.pincode || '—' }}</td>
-            <td>
-              <div class="status-cell">
-                <span class="status-badge" [ngClass]="getStatusClass(order.status)">{{ order.status }}</span>
-                <select
-                  class="status-select"
-                  [value]="order.status"
-                  (change)="onStatusChange(order, $any($event.target).value)"
-                >
-                  <option *ngFor="let s of statusOptions" [value]="s">
-                    {{ s }}
-                  </option>
-                </select>
-              </div>
-            </td>
-            <td class="date-cell">{{ formatDate(order.createdAt) }}</td>
-          </tr>
-        </tbody>
-      </table>
+    <div *ngIf="orders.length > 0 && filteredOrders.length === 0" class="empty-state empty-state--filter">
+      <mat-icon>filter_list_off</mat-icon>
+      <p>No orders with status "{{ statusFilter }}"</p>
+      <button type="button" class="clear-filter-btn" (click)="setStatusFilter('all')">Show all orders</button>
+    </div>
+
+    <div *ngIf="filteredOrders.length > 0" class="orders-grid">
+      <article *ngFor="let order of filteredOrders" class="order-card">
+        <div class="order-card-header">
+          <div class="order-id-block">
+            <span class="order-id-label">Order ID</span>
+            <div class="order-id-row">
+              <code class="order-id">{{ getOrderDisplayId(order) }}</code>
+              <button
+                type="button"
+                class="copy-btn"
+                (click)="copyOrderId(order, $event)"
+                [title]="copiedOrderId === order.id ? 'Copied!' : 'Copy full ID'"
+              >
+                <mat-icon>{{ copiedOrderId === order.id ? 'done' : 'content_copy' }}</mat-icon>
+              </button>
+            </div>
+          </div>
+          <span class="status-badge" [ngClass]="getStatusClass(order.status)">
+            {{ getStatusLabel(order.status) }}
+          </span>
+        </div>
+
+        <div class="order-card-body">
+          <div class="info-block">
+            <mat-icon>storefront</mat-icon>
+            <div>
+              <span class="info-label">Outlet</span>
+              <span class="info-value">{{ order.outletName || '—' }}</span>
+              <span class="info-sub" *ngIf="order.outletAddress">{{ order.outletAddress }}</span>
+            </div>
+          </div>
+
+          <div class="info-block">
+            <mat-icon>contact_mail</mat-icon>
+            <div>
+              <span class="info-label">Contact</span>
+              <span class="info-value">{{ order.email || '—' }}</span>
+              <span class="info-sub" *ngIf="order.phoneNumber">{{ order.phoneNumber }}</span>
+            </div>
+          </div>
+
+          <div class="info-block">
+            <mat-icon>location_on</mat-icon>
+            <div>
+              <span class="info-label">Delivery</span>
+              <span class="info-value">{{ order.deliveryAddress || '—' }}</span>
+              <span class="info-sub" *ngIf="order.pincode">Pincode: {{ order.pincode }}</span>
+            </div>
+          </div>
+
+          <div class="info-block info-block--meta">
+            <mat-icon>event</mat-icon>
+            <div>
+              <span class="info-label">Ordered on</span>
+              <span class="info-value">{{ formatDate(order.createdAt) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="order-card-footer">
+          <a
+            *ngIf="order.phoneNumber"
+            class="action-link action-link--call"
+            [href]="'tel:' + order.phoneNumber"
+            (click)="$event.stopPropagation()"
+          >
+            <mat-icon>call</mat-icon>
+            Call customer
+          </a>
+          <a
+            *ngIf="order.email"
+            class="action-link action-link--email"
+            [href]="'mailto:' + order.email"
+            (click)="$event.stopPropagation()"
+          >
+            <mat-icon>email</mat-icon>
+            Email
+          </a>
+          <div class="status-update">
+            <label [attr.for]="'status-' + order.id">Update status</label>
+            <select
+              [id]="'status-' + order.id"
+              class="status-select"
+              [ngModel]="order.status"
+              (ngModelChange)="onStatusChange(order, $event)"
+              [disabled]="isStatusUpdating(order.id)"
+            >
+              <option *ngFor="let s of statusOptions" [value]="s">
+                {{ getStatusLabel(s) }}
+              </option>
+            </select>
+            <span *ngIf="isStatusUpdating(order.id)" class="status-saving">Saving…</span>
+          </div>
+        </div>
+      </article>
     </div>
   </div>
 </div>

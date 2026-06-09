@@ -112,7 +112,7 @@ export class DashboardLayoutComponent implements OnInit, OnDestroy {
       } else if (currentUrl.includes('/payments')) {
         this.currentPageTitle = 'Payments'
       } else if (currentUrl.includes('/orders')) {
-        this.currentPageTitle = 'Orders';
+        this.currentPageTitle = 'Printer Orders';
       } else if (currentUrl.includes('/profile')) {
         this.currentPageTitle = 'Profile';
       } else {

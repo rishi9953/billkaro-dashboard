@@ -1,6 +1,7 @@
 import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { Subject } from 'rxjs';
 import { API_ENDPOINTS } from '../utilities/constant/api-url.constant';
@@ -28,23 +29,56 @@ interface OrdersApiResponse {
   message?: string;
   data: PrinterOrder[];
   totalItems?: number;
+  pagination?: {
+    currentPage: number;
+    totalPages: number;
+    totalItems: number;
+    itemsPerPage: number;
+  };
+}
+
+interface PrinterOrderEmailNotification {
+  attempted: boolean;
+  sent: boolean;
+  recipient?: string;
+  error?: string;
+}
+
+interface PrinterOrderUpdateResponse {
+  status: string;
+  message?: string;
+  data: PrinterOrder;
+  emailNotification?: PrinterOrderEmailNotification;
 }
 
 @Component({
   selector: 'app-orders-list',
   standalone: true,
-  imports: [CommonModule, MatIconModule],
+  imports: [CommonModule, FormsModule, MatIconModule],
   templateUrl: './orders-list.component.html',
   styleUrls: ['./orders-list.component.scss']
 })
 export class OrdersListComponent implements OnInit, OnDestroy {
   orders: PrinterOrder[] = [];
+  filteredOrders: PrinterOrder[] = [];
   totalItems = 0;
   loading = false;
   error: string | null = null;
-  // Allowed status values in UI: placed, dispatched, delivered, cancelled
+  statusFilter: string = 'all';
+  copiedOrderId: string | null = null;
+  statusUpdateMessage: string | null = null;
+  updatingOrderIds = new Set<string>();
+
   readonly statusOptions: string[] = ['placed', 'dispatched', 'delivered', 'cancelled'];
-  private apiUrl = API_ENDPOINTS.ORDERS_PRINTER;
+  readonly filterTabs: { key: string; label: string; icon: string }[] = [
+    { key: 'all', label: 'All', icon: 'inventory_2' },
+    { key: 'placed', label: 'Placed', icon: 'schedule' },
+    { key: 'dispatched', label: 'Dispatched', icon: 'local_shipping' },
+    { key: 'delivered', label: 'Delivered', icon: 'check_circle' },
+    { key: 'cancelled', label: 'Cancelled', icon: 'cancel' },
+  ];
+
+  private apiUrl = `${API_ENDPOINTS.ORDERS_PRINTER}?limit=200`;
   private destroy$ = new Subject<void>();
 
   constructor(
@@ -69,24 +103,18 @@ export class OrdersListComponent implements OnInit, OnDestroy {
     this.http.get(this.apiUrl, { responseType: 'text', observe: 'response' }).subscribe({
       next: (res) => {
         const bodyText = (res.body ?? '').toString();
-        const contentType = res.headers.get('content-type') || '';
 
         let response: unknown = null;
         if (bodyText.trim().length > 0) {
           try {
             response = JSON.parse(bodyText);
           } catch {
-            console.warn('Orders API returned non-JSON', {
-              status: res.status,
-              contentType,
-              bodyPreview: bodyText.slice(0, 300)
-            });
             this.orders = [];
+            this.filteredOrders = [];
             this.totalItems = 0;
             this.loading = false;
             this.error =
               `API returned non-JSON (status ${res.status}). ` +
-              (contentType ? `Content-Type: ${contentType}. ` : '') +
               `Response: ${bodyText.slice(0, 300)}`;
             this.cdr.detectChanges();
             return;
@@ -94,8 +122,12 @@ export class OrdersListComponent implements OnInit, OnDestroy {
         }
 
         const normalized = this.normalizeOrdersResponse(response);
-        this.orders = normalized.orders;
+        this.orders = normalized.orders.map((order) => ({
+          ...order,
+          status: (order.status || 'placed').toLowerCase(),
+        }));
         this.totalItems = normalized.totalItems;
+        this.applyFilter();
 
         this.loading = false;
         this.cdr.detectChanges();
@@ -104,6 +136,7 @@ export class OrdersListComponent implements OnInit, OnDestroy {
         console.error('Error fetching printer orders:', error);
         this.error = error.error?.message || error.message || 'Failed to fetch orders. Please try again later.';
         this.orders = [];
+        this.filteredOrders = [];
         this.totalItems = 0;
         this.loading = false;
         this.cdr.detectChanges();
@@ -114,30 +147,28 @@ export class OrdersListComponent implements OnInit, OnDestroy {
   private normalizeOrdersResponse(response: unknown): { orders: PrinterOrder[]; totalItems: number } {
     if (!response) return { orders: [], totalItems: 0 };
 
-    // Case 1: API returns raw array.
     if (Array.isArray(response)) {
       return { orders: response as PrinterOrder[], totalItems: response.length };
     }
 
-    // Case 2: API returns a single order object.
     if (typeof response === 'object') {
       const maybe = response as Record<string, unknown>;
 
-      // Common envelope: { status, data, totalItems }
       if (Array.isArray(maybe['data'])) {
         const data = maybe['data'] as PrinterOrder[];
-        const totalItems = typeof maybe['totalItems'] === 'number' ? (maybe['totalItems'] as number) : data.length;
+        const pagination = maybe['pagination'] as OrdersApiResponse['pagination'] | undefined;
+        const totalItems =
+          pagination?.totalItems ??
+          (typeof maybe['totalItems'] === 'number' ? (maybe['totalItems'] as number) : data.length);
         return { orders: data, totalItems };
       }
 
-      // Some APIs: { orders: [...] }
       if (Array.isArray(maybe['orders'])) {
         const orders = maybe['orders'] as PrinterOrder[];
         const totalItems = typeof maybe['totalItems'] === 'number' ? (maybe['totalItems'] as number) : orders.length;
         return { orders, totalItems };
       }
 
-      // Fallback: treat as a single order.
       if (typeof maybe['id'] === 'string' && typeof maybe['createdAt'] === 'string') {
         return { orders: [maybe as unknown as PrinterOrder], totalItems: 1 };
       }
@@ -146,33 +177,140 @@ export class OrdersListComponent implements OnInit, OnDestroy {
     return { orders: [], totalItems: 0 };
   }
 
+  setStatusFilter(status: string): void {
+    this.statusFilter = status;
+    this.applyFilter();
+    this.cdr.detectChanges();
+  }
+
+  private applyFilter(): void {
+    if (this.statusFilter === 'all') {
+      this.filteredOrders = [...this.orders];
+      return;
+    }
+    this.filteredOrders = this.orders.filter(
+      (o) => (o.status || '').toLowerCase() === this.statusFilter
+    );
+  }
+
+  getStatusCount(status: string): number {
+    if (status === 'all') return this.orders.length;
+    return this.orders.filter((o) => (o.status || '').toLowerCase() === status).length;
+  }
+
   getOrderDisplayId(order: PrinterOrder): string {
-    return order.id;
+    if (!order.id) return '—';
+    return order.id.length > 12 ? `${order.id.slice(0, 8)}…` : order.id;
+  }
+
+  async copyOrderId(order: PrinterOrder, event: Event): Promise<void> {
+    event.stopPropagation();
+    if (!order.id) return;
+    try {
+      await navigator.clipboard.writeText(order.id);
+      this.copiedOrderId = order.id;
+      this.cdr.detectChanges();
+      setTimeout(() => {
+        this.copiedOrderId = null;
+        this.cdr.detectChanges();
+      }, 2000);
+    } catch {
+      console.warn('Clipboard copy failed');
+    }
+  }
+
+  isStatusUpdating(orderId: string | undefined): boolean {
+    return !!orderId && this.updatingOrderIds.has(orderId);
   }
 
   onStatusChange(order: PrinterOrder, newStatus: string): void {
-    const next = (newStatus || '').trim();
-    if (!next || next === order.status) return;
+    const next = (newStatus || '').trim().toLowerCase();
+    const current = (order.status || '').trim().toLowerCase();
 
-    const previous = order.status;
-    order.status = next;
-    this.cdr.detectChanges();
+    if (!next || next === current) return;
 
     if (!order.id) {
       console.warn('Cannot update status: missing order id', order);
+      this.error = 'Cannot update status: order ID is missing.';
+      this.cdr.detectChanges();
       return;
     }
 
+    if (!this.statusOptions.includes(next)) {
+      this.error = `Invalid status "${newStatus}".`;
+      this.cdr.detectChanges();
+      return;
+    }
+
+    const previous = order.status;
+    this.updatingOrderIds.add(order.id);
+    this.error = null;
+    this.cdr.detectChanges();
+
     const url = API_ENDPOINTS.ORDERS_PRINTER_UPDATE(order.id);
-    this.http.patch(url, { status: next }).subscribe({
-      next: () => {},
+    const headers = new HttpHeaders({ 'Content-Type': 'application/json' });
+
+    this.http.patch<PrinterOrderUpdateResponse>(url, { status: next }, { headers }).subscribe({
+      next: (response) => {
+        const updatedStatus = (response?.data?.status || next).toLowerCase();
+        order.status = updatedStatus;
+        if (response?.data?.updatedAt) {
+          order.updatedAt = response.data.updatedAt;
+        }
+
+        this.updatingOrderIds.delete(order.id);
+        this.applyFilter();
+        this.error = null;
+        this.statusUpdateMessage = this.buildStatusUpdateMessage(
+          updatedStatus,
+          response?.emailNotification,
+          order.email,
+        );
+        if (response?.emailNotification?.attempted && !response.emailNotification.sent) {
+          this.error =
+            response.emailNotification.error ||
+            'Status saved but notification email could not be sent. Check SMTP settings on the server.';
+        }
+        this.cdr.detectChanges();
+        setTimeout(() => {
+          this.statusUpdateMessage = null;
+          this.cdr.detectChanges();
+        }, 5000);
+      },
       error: (err) => {
         console.error('Failed to update order status', err);
         order.status = previous;
-        this.error = err?.error?.message || 'Failed to update status. Please try again.';
+        this.updatingOrderIds.delete(order.id);
+        this.applyFilter();
+        this.error =
+          err?.error?.message ||
+          (typeof err?.error === 'string' ? err.error : null) ||
+          `Failed to update status (${err?.status ?? 'network error'}). Please try again.`;
         this.cdr.detectChanges();
       },
     });
+  }
+
+  private buildStatusUpdateMessage(
+    updatedStatus: string,
+    emailNotification: PrinterOrderEmailNotification | undefined,
+    fallbackEmail: string | undefined,
+  ): string {
+    const label = this.getStatusLabel(updatedStatus);
+
+    if (emailNotification?.sent && emailNotification.recipient) {
+      return `Status updated to "${label}". Email sent to ${emailNotification.recipient}.`;
+    }
+
+    if (emailNotification?.attempted && !emailNotification.sent) {
+      return `Status updated to "${label}". Email was not sent — check server SMTP configuration.`;
+    }
+
+    if (fallbackEmail) {
+      return `Status updated to "${label}".`;
+    }
+
+    return `Status updated to "${label}".`;
   }
 
   formatDate(dateString: string): string {
@@ -188,15 +326,14 @@ export class OrdersListComponent implements OnInit, OnDestroy {
 
   getStatusClass(status: string): string {
     const s = (status || '').toLowerCase();
-    if (s === 'completed' || s === 'delivered' || s === 'dispatched' || s === 'shipped') {
-      return 'status-completed';
-    }
-    if (s === 'pending' || s === 'processing' || s === 'confirmed' || s === 'placed') {
-      return 'status-pending';
-    }
-    if (s === 'failed' || s === 'cancelled' || s === 'rejected') {
-      return 'status-failed';
-    }
+    if (s === 'delivered') return 'status-delivered';
+    if (s === 'dispatched' || s === 'shipped') return 'status-dispatched';
+    if (s === 'placed' || s === 'pending' || s === 'processing') return 'status-placed';
+    if (s === 'cancelled' || s === 'failed' || s === 'rejected') return 'status-cancelled';
     return 'status-default';
+  }
+
+  getStatusLabel(status: string): string {
+    return (status || 'unknown').charAt(0).toUpperCase() + (status || 'unknown').slice(1);
   }
 }

@@ -40,8 +40,8 @@ export const SIDEBAR_ROUTING: NavItemLinkType[] = [
     accessName: 'PAYMENTS',
   },
   {
-    label: 'Orders',
-    icon: 'shopping_bag',
+    label: 'Printer Orders',
+    icon: 'print',
     path: PAGE_URL.ORDERS,
     accessName: 'ORDERS',
   },
