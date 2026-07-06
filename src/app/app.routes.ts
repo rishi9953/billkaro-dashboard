@@ -61,6 +61,13 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'wallet-cards',
+        loadComponent: () =>
+          import('./wallet-cards/wallet-cards-list.component').then(
+            (m) => m.WalletCardsListComponent
+          ),
+      },
+      {
         path: 'orders',
         loadComponent: () =>
           import('./orders/orders-list.component').then(

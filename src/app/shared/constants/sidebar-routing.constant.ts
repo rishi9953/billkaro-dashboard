@@ -40,6 +40,12 @@ export const SIDEBAR_ROUTING: NavItemLinkType[] = [
     accessName: 'PAYMENTS',
   },
   {
+    label: 'Wallet Cards',
+    icon: 'account_balance_wallet',
+    path: PAGE_URL.WALLET_CARDS,
+    accessName: 'WALLET_CARDS',
+  },
+  {
     label: 'Printer Orders',
     icon: 'print',
     path: PAGE_URL.ORDERS,

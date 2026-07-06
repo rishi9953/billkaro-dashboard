@@ -1,0 +1,76 @@
+<div class="wallet-cards-container">
+  <div class="wallet-cards-header">
+    <h1 class="page-title">Wallet Cards</h1>
+    <p class="page-subtitle">
+      Create recharge cards shown in the BillKaro Windows app for adding money to outlet wallets.
+    </p>
+  </div>
+
+  <div *ngIf="loading" class="loading-container">
+    <div class="loading-spinner"></div>
+    <p>Loading wallet cards...</p>
+  </div>
+
+  <div *ngIf="error && !loading" class="error-container">
+    <mat-icon class="error-icon">error_outline</mat-icon>
+    <p class="error-message">{{ error }}</p>
+    <button class="retry-btn" (click)="fetchCards()">Retry</button>
+  </div>
+
+  <div *ngIf="!loading" class="cards-grid-wrapper">
+    <div *ngIf="cards.length === 0" class="empty-state">
+      <mat-icon>account_balance_wallet</mat-icon>
+      <p>No wallet cards yet</p>
+      <p class="empty-subtitle">Use the + button to create your first recharge card</p>
+    </div>
+
+    <div class="cards-grid" *ngIf="cards.length > 0">
+      <div
+        *ngFor="let card of cards"
+        class="wallet-card"
+        [style.--card-color]="card.cardColor || '#1976D2'"
+      >
+        <div class="card-top">
+          <div>
+            <h3 class="card-title">{{ card.title }}</h3>
+            <p class="card-amount">{{ formatAmount(card.amount) }}</p>
+            <p class="card-bonus" *ngIf="card.bonusAmount > 0">
+              + {{ formatAmount(card.bonusAmount) }} bonus
+            </p>
+          </div>
+          <span class="status-pill" [class.inactive]="!card.active">
+            {{ card.active ? 'Active' : 'Inactive' }}
+          </span>
+        </div>
+
+        <p class="card-description" *ngIf="card.description">{{ card.description }}</p>
+        <p class="card-meta">Sort: {{ card.sortOrder }} · {{ formatDate(card.createdAt) }}</p>
+
+        <div class="card-actions">
+          <button mat-icon-button type="button" (click)="openEditDialog(card)" aria-label="Edit">
+            <mat-icon>edit</mat-icon>
+          </button>
+          <button
+            mat-icon-button
+            type="button"
+            (click)="deleteCard(card)"
+            [disabled]="deletingId === card.id"
+            aria-label="Delete"
+          >
+            <mat-icon>delete</mat-icon>
+          </button>
+          <mat-slide-toggle
+            [checked]="card.active"
+            [disabled]="togglingId === card.id || deletingId === card.id"
+            (change)="onToggleChange(card, $event.checked)"
+            color="primary"
+          ></mat-slide-toggle>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <button class="fab" (click)="openAddDialog()" aria-label="Add wallet card">
+    <mat-icon>add</mat-icon>
+  </button>
+</div>

@@ -7,5 +7,6 @@ export const PAGE_URL = {
   SIGN_OUT: '/login',
   PAYMENTS: '/payments',
   ORDERS: '/orders',
+  WALLET_CARDS: '/wallet-cards',
   PROFILE: '/profile',
 };
