@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { Subject } from 'rxjs';
+import { Subject, catchError, of } from 'rxjs';
 import { API_ENDPOINTS } from '../../utilities/constant/api-url.constant';
 import { UserDetailsDialogComponent } from './user-details-dialog/user-details-dialog.component';
 
@@ -128,10 +128,33 @@ export class UsersComponent implements OnInit, OnDestroy {
 
   toggleUserStatus(user: User): void {
     const newStatus = !user.activate;
-    // You would typically call an API here to update the status
-    // For now, we'll just update locally
+    const previousStatus = user.activate;
+
     user.activate = newStatus;
-    console.log(`User ${user.id} status changed to ${newStatus}`);
+
+    this.http
+      .patch<{ status: string; message?: string }>(
+        API_ENDPOINTS.USER_ACTIVATION(user.id),
+        { activate: newStatus },
+      )
+      .pipe(
+        catchError((error) => {
+          user.activate = previousStatus;
+          console.error('Failed to update user status:', error);
+          this.error =
+            error.error?.message ||
+            error.message ||
+            'Failed to update user status. Please try again.';
+          this.cdr.detectChanges();
+          return of(null);
+        }),
+      )
+      .subscribe((response) => {
+        if (!response) return;
+        this.error = null;
+        console.log(`User ${user.id} status changed to ${newStatus}`);
+        this.cdr.detectChanges();
+      });
   }
 
   getStatusClass(status: boolean): string {
