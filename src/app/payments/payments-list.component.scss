@@ -37,9 +37,103 @@
       color: #2e7d32;
     }
 
+    &.total-wallet {
+      color: #1565c0;
+    }
+
     &.total-failed {
       color: #721c24;
     }
+  }
+}
+
+.filters {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.filter-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 12px;
+}
+
+.filter-label {
+  min-width: 52px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  color: var(--app-text-secondary);
+}
+
+.filter-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.filter-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 1px solid var(--app-border);
+  border-radius: 20px;
+  background: var(--app-bg-card);
+  color: var(--app-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+  }
+
+  .filter-count {
+    background: var(--app-border);
+    padding: 1px 7px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  &:hover {
+    border-color: #5a67d8;
+    color: var(--app-text-primary);
+  }
+
+  &.active {
+    background: #5a67d8;
+    border-color: #5a67d8;
+    color: #fff;
+
+    .filter-count {
+      background: rgba(255, 255, 255, 0.25);
+      color: #fff;
+    }
+  }
+}
+
+.clear-filter-btn {
+  margin-top: 8px;
+  padding: 8px 18px;
+  border: 1px solid #5a67d8;
+  border-radius: 8px;
+  background: transparent;
+  color: #5a67d8;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+
+  &:hover {
+    background: rgba(90, 103, 216, 0.08);
   }
 }
 
@@ -143,6 +237,7 @@
   border-radius: 12px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   overflow-x: auto;
+  padding-bottom: 4px;
 }
 
 .payments-table {
@@ -220,6 +315,31 @@
     font-size: 12px;
     font-weight: 500;
     text-transform: capitalize;
+  }
+
+  .type-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+
+    &.type-subscription {
+      background-color: #e8e8ff;
+      color: #5a67d8;
+    }
+
+    &.type-wallet {
+      background-color: #e3f2fd;
+      color: #1565c0;
+    }
+  }
+
+  .outlet-hint {
+    display: block;
+    margin-top: 4px;
+    font-size: 11px;
+    color: var(--app-text-secondary);
   }
 
   .status-badge {

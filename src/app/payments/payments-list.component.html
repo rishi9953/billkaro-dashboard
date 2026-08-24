@@ -1,11 +1,50 @@
 <div class="payments-list-container">
   <div class="payments-header">
     <h1 class="page-title">Payments</h1>
-    <div class="payments-summary" *ngIf="!loading && !error && totalItems > 0">
-      <p class="total-count">{{ totalItems }} payment{{ totalItems !== 1 ? 's' : '' }} total</p>
+    <div class="payments-summary" *ngIf="!loading && !error && payments.length > 0">
+      <p class="total-count">
+        {{ filteredPayments.length }} payment{{ filteredPayments.length !== 1 ? 's' : '' }}
+        <span *ngIf="hasActiveFilters"> of {{ payments.length }}</span>
+      </p>
       <p class="total-amount">Total amount: {{ formatAmount(totalAmount, 'INR') }}</p>
       <p class="total-amount total-completed">Completed: {{ completedCount }} payment{{ completedCount !== 1 ? 's' : '' }}, {{ formatAmount(totalCompletedAmount, 'INR') }}</p>
+      <p class="total-amount total-wallet" *ngIf="walletCount > 0">Wallet: {{ walletCount }} payment{{ walletCount !== 1 ? 's' : '' }}, {{ formatAmount(totalWalletAmount, 'INR') }}</p>
       <p class="total-amount total-failed">Failed: {{ failedCount }} payment{{ failedCount !== 1 ? 's' : '' }}, {{ formatAmount(totalFailedAmount, 'INR') }}</p>
+    </div>
+  </div>
+
+  <div class="filters" *ngIf="!loading && !error && payments.length > 0">
+    <div class="filter-group">
+      <span class="filter-label">Type</span>
+      <div class="filter-tabs">
+        <button
+          *ngFor="let tab of typeTabs"
+          type="button"
+          class="filter-tab"
+          [class.active]="typeFilter === tab.key"
+          (click)="setTypeFilter(tab.key)"
+        >
+          <mat-icon>{{ tab.icon }}</mat-icon>
+          <span>{{ tab.label }}</span>
+          <span class="filter-count">{{ getTypeCount(tab.key) }}</span>
+        </button>
+      </div>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">Status</span>
+      <div class="filter-tabs">
+        <button
+          *ngFor="let tab of statusTabs"
+          type="button"
+          class="filter-tab"
+          [class.active]="statusFilter === tab.key"
+          (click)="setStatusFilter(tab.key)"
+        >
+          <mat-icon>{{ tab.icon }}</mat-icon>
+          <span>{{ tab.label }}</span>
+          <span class="filter-count">{{ getStatusCount(tab.key) }}</span>
+        </button>
+      </div>
     </div>
   </div>
 
@@ -29,11 +68,18 @@
       <p>No payments found</p>
     </div>
 
-    <div *ngIf="payments.length > 0" class="payments-table-wrapper">
+    <div *ngIf="payments.length > 0 && filteredPayments.length === 0" class="empty-state empty-state--filter">
+      <mat-icon>filter_list_off</mat-icon>
+      <p>No payments match the selected filters</p>
+      <button type="button" class="clear-filter-btn" (click)="clearFilters()">Show all payments</button>
+    </div>
+
+    <div *ngIf="filteredPayments.length > 0" class="payments-table-wrapper">
       <table class="payments-table" role="grid">
         <thead>
           <tr>
             <th scope="col">Transaction ID</th>
+            <th scope="col">Type</th>
             <th scope="col">User</th>
             <th scope="col">Amount</th>
             <th scope="col">Method</th>
@@ -43,8 +89,16 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let payment of payments" class="payment-row">
+          <tr *ngFor="let payment of pagedPayments" class="payment-row">
             <td class="transaction-id">{{ payment.transactionId }}</td>
+            <td>
+              <span class="type-badge" [ngClass]="getPaymentTypeClass(payment)">
+                {{ getPaymentTypeLabel(payment) }}
+              </span>
+              <span class="outlet-hint" *ngIf="payment.metadata?.outletName">
+                {{ payment.metadata?.outletName }}
+              </span>
+            </td>
             <td class="user-cell">
               <div class="user-cell-inner">
                 <span class="user-email" *ngIf="payment.user">{{ payment.user.email }}</span>
@@ -53,7 +107,7 @@
               </div>
             </td>
             <td class="amount-cell">{{ formatAmount(payment.amount, payment.currency) }}</td>
-            <td><span class="method-badge">{{ payment.method }}</span></td>
+            <td><span class="method-badge">{{ getMethodLabel(payment) }}</span></td>
             <td>
               <span class="status-badge" [ngClass]="getStatusClass(payment.status)">{{ payment.status }}</span>
             </td>
@@ -66,6 +120,13 @@
           </tr>
         </tbody>
       </table>
+
+      <app-number-paginator
+        [length]="filteredPayments.length"
+        [pageSize]="pageSize"
+        [pageIndex]="pageIndex"
+        (pageChange)="onPageChange($event)"
+      ></app-number-paginator>
     </div>
   </div>
 </div>

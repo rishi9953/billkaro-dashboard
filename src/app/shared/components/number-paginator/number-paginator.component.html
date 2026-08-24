@@ -1,0 +1,52 @@
+<nav
+  class="number-paginator"
+  *ngIf="length > pageSize"
+  aria-label="Pagination"
+>
+  <span class="range-label">{{ rangeLabel }}</span>
+
+  <div class="controls">
+    <button
+      type="button"
+      class="nav-btn"
+      [disabled]="!canGoPrevious"
+      (click)="previous()"
+      aria-label="Previous page"
+    >
+      <mat-icon>chevron_left</mat-icon>
+    </button>
+
+    <ng-container *ngFor="let page of pageNumbers">
+      <button
+        *ngIf="page === '...'"
+        type="button"
+        class="page-btn ellipsis"
+        disabled
+        aria-hidden="true"
+      >
+        …
+      </button>
+      <button
+        *ngIf="page !== '...'"
+        type="button"
+        class="page-btn"
+        [class.active]="page === pageIndex"
+        (click)="goToPage(page)"
+        [attr.aria-current]="page === pageIndex ? 'page' : null"
+        [attr.aria-label]="'Page ' + (page + 1)"
+      >
+        {{ page + 1 }}
+      </button>
+    </ng-container>
+
+    <button
+      type="button"
+      class="nav-btn"
+      [disabled]="!canGoNext"
+      (click)="next()"
+      aria-label="Next page"
+    >
+      <mat-icon>chevron_right</mat-icon>
+    </button>
+  </div>
+</nav>

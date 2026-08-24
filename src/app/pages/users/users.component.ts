@@ -6,6 +6,7 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { Subject, catchError, of } from 'rxjs';
 import { API_ENDPOINTS } from '../../utilities/constant/api-url.constant';
 import { UserDetailsDialogComponent } from './user-details-dialog/user-details-dialog.component';
+import { NumberPaginatorComponent } from '../../shared/components/number-paginator/number-paginator.component';
 
 export interface OutletData {
   id: string;
@@ -57,14 +58,17 @@ interface ApiResponse {
 @Component({
   selector: 'app-users',
   standalone: true,
-  imports: [CommonModule, MatIconModule, MatDialogModule],
+  imports: [CommonModule, MatIconModule, MatDialogModule, NumberPaginatorComponent],
   templateUrl: './users.component.html',
   styleUrls: ['./users.component.scss']
 })
 export class UsersComponent implements OnInit, OnDestroy {
   users: User[] = [];
+  pagedUsers: User[] = [];
   loading = false;
   error: string | null = null;
+  pageIndex = 0;
+  readonly pageSize = 10;
   private apiUrl = API_ENDPOINTS.USERS;
   private destroy$ = new Subject<void>();
 
@@ -94,12 +98,15 @@ export class UsersComponent implements OnInit, OnDestroy {
         this.loading = false;
         if (response.body && response.body.status === 'success' && response.body.data) {
           this.users = response.body.data;
+          this.pageIndex = 0;
+          this.applyPagination();
           this.cdr.detectChanges();
           console.log('Users loaded:', this.users.length);
         } else {
           console.warn('Invalid response format:', response.body);
           this.error = 'Invalid response format';
           this.users = [];
+          this.pagedUsers = [];
         }
       },
       error: (error) => {
@@ -117,9 +124,21 @@ export class UsersComponent implements OnInit, OnDestroy {
           this.error = error.error?.message || error.message || `Failed to fetch users (Status: ${error.status || 'Unknown'}). Please try again later.`;
         }
         this.users = [];
+        this.pagedUsers = [];
         this.cdr.detectChanges();
       }
     });
+  }
+
+  onPageChange(pageIndex: number): void {
+    this.pageIndex = pageIndex;
+    this.applyPagination();
+    this.cdr.detectChanges();
+  }
+
+  private applyPagination(): void {
+    const start = this.pageIndex * this.pageSize;
+    this.pagedUsers = this.users.slice(start, start + this.pageSize);
   }
 
   refreshUsers(): void {

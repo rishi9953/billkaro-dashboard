@@ -39,7 +39,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let user of users">
+          <tr *ngFor="let user of pagedUsers">
             <td class="user-avatar-cell">
               <div class="user-avatar" [class.has-image]="user.image && !userImageFailed.has(user.id)">
                 <img *ngIf="user.image && !userImageFailed.has(user.id)" [src]="user.image" [alt]="getFullName(user)" (error)="onUserImageError(user)" />
@@ -83,6 +83,14 @@
         </tbody>
       </table>
     </div>
+
+    <app-number-paginator
+      *ngIf="users.length > 0"
+      [length]="users.length"
+      [pageSize]="pageSize"
+      [pageIndex]="pageIndex"
+      (pageChange)="onPageChange($event)"
+    ></app-number-paginator>
 
     <div *ngIf="users.length > 0" class="users-summary">
       <p>Total Users: <strong>{{ totalUsers }}</strong></p>

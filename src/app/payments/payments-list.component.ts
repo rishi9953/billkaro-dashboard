@@ -4,6 +4,7 @@ import { HttpClient } from '@angular/common/http';
 import { MatIconModule } from '@angular/material/icon';
 import { Subject } from 'rxjs';
 import { API_ENDPOINTS } from '../utilities/constant/api-url.constant';
+import { NumberPaginatorComponent } from '../shared/components/number-paginator/number-paginator.component';
 
 export interface PaymentUser {
   id: string;
@@ -15,6 +16,12 @@ export interface PaymentMetadata {
   id?: string;
   status?: string;
   method?: string;
+  bonusAmount?: number;
+  creditedAmount?: number;
+  outletId?: string;
+  outletName?: string | null;
+  description?: string;
+  razorpayOrderId?: string;
   [key: string]: unknown;
 }
 
@@ -31,6 +38,8 @@ export interface Payment {
   metadata?: PaymentMetadata;
   verified: boolean;
   user?: PaymentUser;
+  /** subscription = plan purchase; wallet = outlet wallet recharge */
+  paymentType?: 'subscription' | 'wallet';
 }
 
 interface PaymentsApiResponse {
@@ -43,15 +52,35 @@ interface PaymentsApiResponse {
 @Component({
   selector: 'app-payments-list',
   standalone: true,
-  imports: [CommonModule, MatIconModule],
+  imports: [CommonModule, MatIconModule, NumberPaginatorComponent],
   templateUrl: './payments-list.component.html',
   styleUrls: ['./payments-list.component.scss']
 })
 export class PaymentsListComponent implements OnInit, OnDestroy {
   payments: Payment[] = [];
+  filteredPayments: Payment[] = [];
+  pagedPayments: Payment[] = [];
   totalItems = 0;
   loading = false;
   error: string | null = null;
+  typeFilter: 'all' | 'subscription' | 'wallet' = 'all';
+  statusFilter: 'all' | 'completed' | 'pending' | 'failed' = 'all';
+  pageIndex = 0;
+  readonly pageSize = 10;
+
+  readonly typeTabs: { key: 'all' | 'subscription' | 'wallet'; label: string; icon: string }[] = [
+    { key: 'all', label: 'All', icon: 'payments' },
+    { key: 'subscription', label: 'Subscription', icon: 'card_membership' },
+    { key: 'wallet', label: 'Wallet', icon: 'account_balance_wallet' },
+  ];
+
+  readonly statusTabs: { key: 'all' | 'completed' | 'pending' | 'failed'; label: string; icon: string }[] = [
+    { key: 'all', label: 'All statuses', icon: 'tune' },
+    { key: 'completed', label: 'Completed', icon: 'check_circle' },
+    { key: 'pending', label: 'Pending', icon: 'schedule' },
+    { key: 'failed', label: 'Failed', icon: 'cancel' },
+  ];
+
   private apiUrl = API_ENDPOINTS.PAYMENTS_ADMIN_ALL;
   private destroy$ = new Subject<void>();
 
@@ -90,6 +119,8 @@ export class PaymentsListComponent implements OnInit, OnDestroy {
               bodyPreview: bodyText.slice(0, 300)
             });
             this.payments = [];
+            this.filteredPayments = [];
+            this.pagedPayments = [];
             this.totalItems = 0;
             this.loading = false;
             this.error =
@@ -114,6 +145,8 @@ export class PaymentsListComponent implements OnInit, OnDestroy {
           this.totalItems = 0;
         }
 
+        this.pageIndex = 0;
+        this.applyFilters();
         this.loading = false;
         this.cdr.detectChanges();
       },
@@ -121,6 +154,8 @@ export class PaymentsListComponent implements OnInit, OnDestroy {
         console.error('Error fetching payments:', error);
         this.error = error.error?.message || error.message || 'Failed to fetch payments. Please try again later.';
         this.payments = [];
+        this.filteredPayments = [];
+        this.pagedPayments = [];
         this.totalItems = 0;
         this.loading = false;
         this.cdr.detectChanges();
@@ -154,9 +189,111 @@ export class PaymentsListComponent implements OnInit, OnDestroy {
     return 'status-default';
   }
 
-  /** Sum of all payment amounts (uses INR for display when mixed currencies). */
+  isWalletPayment(payment: Payment): boolean {
+    return payment.paymentType === 'wallet' || payment.method === 'wallet';
+  }
+
+  getPaymentTypeLabel(payment: Payment): string {
+    return this.isWalletPayment(payment) ? 'Wallet' : 'Subscription';
+  }
+
+  getPaymentTypeClass(payment: Payment): string {
+    return this.isWalletPayment(payment) ? 'type-wallet' : 'type-subscription';
+  }
+
+  getMethodLabel(payment: Payment): string {
+    if (this.isWalletPayment(payment)) {
+      return 'Wallet recharge';
+    }
+    return payment.method || '—';
+  }
+
+  setTypeFilter(type: 'all' | 'subscription' | 'wallet'): void {
+    this.typeFilter = type;
+    this.pageIndex = 0;
+    this.applyFilters();
+    this.cdr.detectChanges();
+  }
+
+  setStatusFilter(status: 'all' | 'completed' | 'pending' | 'failed'): void {
+    this.statusFilter = status;
+    this.pageIndex = 0;
+    this.applyFilters();
+    this.cdr.detectChanges();
+  }
+
+  clearFilters(): void {
+    this.typeFilter = 'all';
+    this.statusFilter = 'all';
+    this.pageIndex = 0;
+    this.applyFilters();
+    this.cdr.detectChanges();
+  }
+
+  onPageChange(pageIndex: number): void {
+    this.pageIndex = pageIndex;
+    this.applyPagination();
+    this.cdr.detectChanges();
+  }
+
+  get hasActiveFilters(): boolean {
+    return this.typeFilter !== 'all' || this.statusFilter !== 'all';
+  }
+
+  private applyFilters(): void {
+    this.filteredPayments = this.payments.filter((payment) => {
+      if (this.typeFilter === 'wallet' && !this.isWalletPayment(payment)) return false;
+      if (this.typeFilter === 'subscription' && this.isWalletPayment(payment)) return false;
+      if (this.statusFilter !== 'all' && !this.matchesStatusFilter(payment, this.statusFilter)) {
+        return false;
+      }
+      return true;
+    });
+
+    const maxPage = Math.max(0, Math.ceil(this.filteredPayments.length / this.pageSize) - 1);
+    if (this.pageIndex > maxPage) {
+      this.pageIndex = maxPage;
+    }
+    this.applyPagination();
+  }
+
+  private applyPagination(): void {
+    const start = this.pageIndex * this.pageSize;
+    this.pagedPayments = this.filteredPayments.slice(start, start + this.pageSize);
+  }
+
+  private matchesStatusFilter(
+    payment: Payment,
+    status: 'completed' | 'pending' | 'failed'
+  ): boolean {
+    if (status === 'completed') return this.isCompletedStatus(payment.status ?? '');
+    if (status === 'failed') return this.isFailedStatus(payment.status ?? '');
+    return this.isPendingStatus(payment.status ?? '');
+  }
+
+  getTypeCount(type: 'all' | 'subscription' | 'wallet'): number {
+    if (type === 'all') return this.payments.length;
+    if (type === 'wallet') return this.payments.filter((p) => this.isWalletPayment(p)).length;
+    return this.payments.filter((p) => !this.isWalletPayment(p)).length;
+  }
+
+  getStatusCount(status: 'all' | 'completed' | 'pending' | 'failed'): number {
+    const scoped = this.paymentsForTypeFilter;
+    if (status === 'all') return scoped.length;
+    return scoped.filter((p) => this.matchesStatusFilter(p, status)).length;
+  }
+
+  private get paymentsForTypeFilter(): Payment[] {
+    if (this.typeFilter === 'wallet') return this.payments.filter((p) => this.isWalletPayment(p));
+    if (this.typeFilter === 'subscription') {
+      return this.payments.filter((p) => !this.isWalletPayment(p));
+    }
+    return this.payments;
+  }
+
+  /** Sum of amounts currently shown (respects filters). */
   get totalAmount(): number {
-    return this.payments.reduce((sum, p) => sum + (p?.amount ?? 0), 0);
+    return this.filteredPayments.reduce((sum, p) => sum + (p?.amount ?? 0), 0);
   }
 
   private isCompletedStatus(status: string): boolean {
@@ -166,29 +303,40 @@ export class PaymentsListComponent implements OnInit, OnDestroy {
 
   private isFailedStatus(status: string): boolean {
     const s = (status || '').toLowerCase();
-    return s === 'failed' || s === 'cancelled';
+    return s === 'failed' || s === 'cancelled' || s === 'rejected';
   }
 
-  /** Count of completed/captured payments. */
+  private isPendingStatus(status: string): boolean {
+    const s = (status || '').toLowerCase();
+    return s === 'pending';
+  }
+
   get completedCount(): number {
-    return this.payments.filter((p) => this.isCompletedStatus(p?.status ?? '')).length;
+    return this.filteredPayments.filter((p) => this.isCompletedStatus(p?.status ?? '')).length;
   }
 
-  /** Count of failed/cancelled payments. */
   get failedCount(): number {
-    return this.payments.filter((p) => this.isFailedStatus(p?.status ?? '')).length;
+    return this.filteredPayments.filter((p) => this.isFailedStatus(p?.status ?? '')).length;
   }
 
-  /** Sum of amounts for completed/captured payments. */
   get totalCompletedAmount(): number {
-    return this.payments
+    return this.filteredPayments
       .filter((p) => this.isCompletedStatus(p?.status ?? ''))
       .reduce((sum, p) => sum + (p?.amount ?? 0), 0);
   }
 
-  /** Sum of amounts for failed/cancelled payments. */
+  get walletCount(): number {
+    return this.filteredPayments.filter((p) => this.isWalletPayment(p)).length;
+  }
+
+  get totalWalletAmount(): number {
+    return this.filteredPayments
+      .filter((p) => this.isWalletPayment(p))
+      .reduce((sum, p) => sum + (p?.amount ?? 0), 0);
+  }
+
   get totalFailedAmount(): number {
-    return this.payments
+    return this.filteredPayments
       .filter((p) => this.isFailedStatus(p?.status ?? ''))
       .reduce((sum, p) => sum + (p?.amount ?? 0), 0);
   }
