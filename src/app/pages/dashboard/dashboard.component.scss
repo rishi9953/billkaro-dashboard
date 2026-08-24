@@ -146,8 +146,14 @@
 
 .recent-lists-row {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 24px;
+}
+
+.recent-list-empty {
+  margin: 8px 0 0;
+  font-size: 14px;
+  color: var(--app-text-secondary, #64748b);
 }
 
 .recent-list-card {

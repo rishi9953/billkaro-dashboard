@@ -89,12 +89,12 @@
 
     <!-- Recent lists row -->
     <div class="recent-lists-row">
-      <div class="recent-list-card" *ngIf="false">
+      <div class="recent-list-card">
         <div class="recent-list-header">
           <h3 class="recent-list-title">Recent Transactions</h3>
           <a [routerLink]="pageUrl.PAYMENTS" class="view-all-link">View All</a>
         </div>
-        <ul class="recent-list">
+        <ul class="recent-list" *ngIf="recentTransactions.length > 0; else noRecentTransactions">
           <li *ngFor="let item of recentTransactions" class="recent-list-item">
             <div class="recent-item-left">
               <span class="recent-avatar" [style.background-color]="getAvatarColor(item.colorIndex)">{{ getInitial(item.companyName) }}</span>
@@ -109,6 +109,9 @@
             </div>
           </li>
         </ul>
+        <ng-template #noRecentTransactions>
+          <p class="recent-list-empty">No recent transactions</p>
+        </ng-template>
       </div>
       <div class="recent-list-card">
         <div class="recent-list-header">
