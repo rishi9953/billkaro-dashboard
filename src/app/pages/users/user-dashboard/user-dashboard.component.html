@@ -1,0 +1,494 @@
+<section class="user-dashboard">
+  <header class="ud-header">
+    <div class="ud-header-left">
+      <button type="button" class="back-btn" (click)="goBack()" aria-label="Back to users">
+        <mat-icon>arrow_back</mat-icon>
+        <span>Users</span>
+      </button>
+      <div class="ud-header-profile" *ngIf="data?.user">
+        <div class="header-avatar" [class.has-image]="hasImage(profileImage)">
+          <img
+            *ngIf="hasImage(profileImage)"
+            [src]="profileImage"
+            [alt]="fullName"
+            (error)="onImgError(profileImage)" />
+          <mat-icon *ngIf="!hasImage(profileImage)">person</mat-icon>
+        </div>
+        <div>
+          <h1 class="ud-title">{{ fullName }}</h1>
+          <p class="ud-subtitle">{{ display(data?.user?.brandName) }} · {{ display(data?.user?.email) }}</p>
+        </div>
+      </div>
+      <div *ngIf="!data?.user">
+        <h1 class="ud-title">User Dashboard</h1>
+      </div>
+    </div>
+
+    <div class="ud-header-right" *ngIf="data && data.outlets.length > 0">
+      <label class="outlet-label" for="outletSelect">Outlet</label>
+      <select
+        id="outletSelect"
+        class="outlet-select"
+        [(ngModel)]="selectedOutletId"
+        (ngModelChange)="onOutletChange()">
+        <option *ngFor="let outlet of data.outlets" [value]="outlet.id">
+          {{ outlet.businessName || 'Outlet' }}
+        </option>
+      </select>
+    </div>
+  </header>
+
+  <div *ngIf="loading" class="ud-loading">
+    <div class="spinner"></div>
+    <p>Loading user dashboard...</p>
+  </div>
+
+  <div *ngIf="error && !loading" class="ud-error">
+    <mat-icon>error_outline</mat-icon>
+    <p>{{ error }}</p>
+    <button type="button" class="retry-btn" (click)="fetchDashboard(selectedOutletId || undefined)">Retry</button>
+  </div>
+
+  <ng-container *ngIf="!loading && !error && data as d">
+    <!-- Highlight stats -->
+    <div class="highlight-grid">
+      <div class="highlight-card">
+        <span class="hl-label">Last Recharge</span>
+        <span class="hl-value">{{ d.lastRecharge ? formatCurrency(d.lastRecharge.amount) : '—' }}</span>
+        <span class="hl-meta">{{ d.lastRecharge ? formatDate(d.lastRecharge.createdAt) : 'No recharge yet' }}</span>
+      </div>
+      <div class="highlight-card">
+        <span class="hl-label">Wallet Balance</span>
+        <span class="hl-value">{{ formatCurrency(d.walletBalance) }}</span>
+        <span class="hl-meta">Current outlet wallet</span>
+      </div>
+      <div class="highlight-card">
+        <span class="hl-label">Subscription</span>
+        <span class="hl-value">{{ d.lastSubscription?.plan?.title || '—' }}</span>
+        <span class="hl-meta">
+          <ng-container *ngIf="d.lastSubscription; else noSub">
+            {{ d.lastSubscription.isActive ? 'Active' : 'Expired' }} · ends {{ formatDate(d.lastSubscription.endDate) }}
+          </ng-container>
+          <ng-template #noSub>No subscription</ng-template>
+        </span>
+      </div>
+      <div class="highlight-card">
+        <span class="hl-label">Last Bill</span>
+        <span class="hl-value">{{ d.lastBill ? formatCurrency(d.lastBill.totalAmount) : '—' }}</span>
+        <span class="hl-meta">
+          <ng-container *ngIf="d.lastBill; else noBill">
+            #{{ d.lastBill.billNumber }} · {{ formatDate(d.lastBill.createdAt) }}
+          </ng-container>
+          <ng-template #noBill>No bills yet</ng-template>
+        </span>
+      </div>
+    </div>
+
+    <!-- Full profile -->
+    <div class="section-card">
+      <div class="section-header">
+        <h3>Full Profile</h3>
+      </div>
+      <div class="profile-details">
+        <div class="profile-avatar-lg" [class.has-image]="hasImage(profileImage)">
+          <img
+            *ngIf="hasImage(profileImage)"
+            [src]="profileImage"
+            [alt]="fullName"
+            (error)="onImgError(profileImage)" />
+          <mat-icon *ngIf="!hasImage(profileImage)">person</mat-icon>
+        </div>
+        <div class="details-grid">
+          <div class="detail-item"><span class="detail-label">Name</span><span class="detail-value">{{ fullName }}</span></div>
+          <div class="detail-item"><span class="detail-label">Title</span><span class="detail-value">{{ display(d.user.title) }}</span></div>
+          <div class="detail-item"><span class="detail-label">Brand</span><span class="detail-value">{{ display(d.user.brandName) }}</span></div>
+          <div class="detail-item"><span class="detail-label">Email</span><span class="detail-value">{{ display(d.user.email) }}</span></div>
+          <div class="detail-item"><span class="detail-label">Mobile</span><span class="detail-value">{{ display(d.user.mobile) }}</span></div>
+          <div class="detail-item">
+            <span class="detail-label">Status</span>
+            <span class="detail-value">
+              <span class="badge" [ngClass]="d.user.activate ? 'badge-success' : 'badge-warning'">
+                {{ d.user.activate ? 'Active' : 'Pending' }}
+              </span>
+            </span>
+          </div>
+          <div class="detail-item"><span class="detail-label">Trial</span><span class="detail-value">{{ d.user.isTrial ? 'Yes' : 'No' }}</span></div>
+          <div class="detail-item"><span class="detail-label">Billing Mode</span><span class="detail-value">{{ display(d.user.billingAccessMode) }}</span></div>
+          <div class="detail-item full"><span class="detail-label">Address</span><span class="detail-value">{{ display(d.user.address) }}</span></div>
+          <div class="detail-item"><span class="detail-label">City</span><span class="detail-value">{{ display(d.user.city) }}</span></div>
+          <div class="detail-item"><span class="detail-label">State</span><span class="detail-value">{{ display(d.user.state) }}</span></div>
+          <div class="detail-item"><span class="detail-label">Zipcode</span><span class="detail-value">{{ display(d.user.zipcode) }}</span></div>
+          <div class="detail-item"><span class="detail-label">Country</span><span class="detail-value">{{ display(d.user.country) }}</span></div>
+          <div class="detail-item"><span class="detail-label">Created</span><span class="detail-value">{{ formatDateTime(d.user.createdAt) }}</span></div>
+          <div class="detail-item"><span class="detail-label">Updated</span><span class="detail-value">{{ formatDateTime(d.user.updatedAt) }}</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Outlets with logos -->
+    <div class="section-card" *ngIf="d.outlets.length">
+      <div class="section-header">
+        <h3>Outlets ({{ d.outlets.length }})</h3>
+      </div>
+      <div class="outlet-grid">
+        <div class="outlet-card" *ngFor="let outlet of d.outlets" [class.selected]="outlet.id === d.selectedOutletId">
+          <div class="outlet-top">
+            <div class="thumb" [class.has-image]="hasImage(outlet.logo)">
+              <img
+                *ngIf="hasImage(outlet.logo)"
+                [src]="outlet.logo"
+                [alt]="outlet.businessName"
+                (error)="onImgError(outlet.logo)" />
+              <mat-icon *ngIf="!hasImage(outlet.logo)">store</mat-icon>
+            </div>
+            <div>
+              <h4>{{ display(outlet.businessName) }}</h4>
+              <p>{{ display(outlet.businessType) }} · {{ display(outlet.businessCategory) }}</p>
+            </div>
+          </div>
+          <div class="details-grid compact">
+            <div class="detail-item full"><span class="detail-label">Address</span><span class="detail-value">{{ display(outlet.outletAddress) }}</span></div>
+            <div class="detail-item"><span class="detail-label">Phone</span><span class="detail-value">{{ display(outlet.phoneNumber) }}</span></div>
+            <div class="detail-item"><span class="detail-label">UPI</span><span class="detail-value">{{ display(outlet.upiId) }}</span></div>
+            <div class="detail-item"><span class="detail-label">GSTIN</span><span class="detail-value">{{ display(outlet.gstinNumber) }}</span></div>
+            <div class="detail-item"><span class="detail-label">FSSAI</span><span class="detail-value">{{ display(outlet.fssaiNumber) }}</span></div>
+            <div class="detail-item"><span class="detail-label">Tax Slab</span><span class="detail-value">{{ display(outlet.taxSlab) }}</span></div>
+            <div class="detail-item"><span class="detail-label">Seating</span><span class="detail-value">{{ display(outlet.seatingCapacity) }}</span></div>
+            <div class="detail-item"><span class="detail-label">Bill #</span><span class="detail-value">{{ outlet.billNumber ?? 0 }}</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon orders"><mat-icon>receipt_long</mat-icon></div>
+        <div class="stat-body"><span class="stat-label">Total Orders</span><span class="stat-value">{{ d.stats.totalOrders }}</span></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon revenue"><mat-icon>payments</mat-icon></div>
+        <div class="stat-body"><span class="stat-label">Order Revenue</span><span class="stat-value">{{ formatCurrency(d.stats.totalRevenue) }}</span></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon staff"><mat-icon>badge</mat-icon></div>
+        <div class="stat-body"><span class="stat-label">Staff</span><span class="stat-value">{{ d.stats.staffCount }}</span></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon inventory"><mat-icon>inventory_2</mat-icon></div>
+        <div class="stat-body"><span class="stat-label">Inventory</span><span class="stat-value">{{ d.inventory.totalRawMaterials }}</span></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon menu"><mat-icon>restaurant_menu</mat-icon></div>
+        <div class="stat-body"><span class="stat-label">Menu Items</span><span class="stat-value">{{ d.stats.itemCount }}</span></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon lowstock"><mat-icon>warning_amber</mat-icon></div>
+        <div class="stat-body"><span class="stat-label">Low Stock</span><span class="stat-value">{{ d.inventory.lowStockCount }}</span></div>
+      </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="charts-row">
+      <div class="chart-card">
+        <h3 class="chart-title">Order revenue (last 14 days)</h3>
+        <div class="chart-container"><canvas #lineChartCanvas></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3 class="chart-title">Order status</h3>
+        <div class="chart-container chart-container-doughnut"><canvas #doughnutChartCanvas></canvas></div>
+      </div>
+    </div>
+    <div class="charts-row">
+      <div class="chart-card">
+        <h3 class="chart-title">Top selling items</h3>
+        <div class="chart-container"><canvas #topItemsChartCanvas></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3 class="chart-title">Payment methods</h3>
+        <div class="chart-container chart-container-doughnut"><canvas #paymentChartCanvas></canvas></div>
+      </div>
+    </div>
+
+    <!-- Order report -->
+    <div class="section-card">
+      <div class="section-header">
+        <h3>Order Report</h3>
+        <span class="list-meta">Avg ticket {{ formatCurrency(d.orderReport.averageOrderValue) }}</span>
+      </div>
+      <div class="report-stats">
+        <div><span>Total</span><strong>{{ d.orderReport.totalOrders }}</strong></div>
+        <div><span>Closed</span><strong>{{ d.orderReport.closedOrders }}</strong></div>
+        <div><span>Pending</span><strong>{{ d.orderReport.pendingOrders }}</strong></div>
+        <div><span>Revenue</span><strong>{{ formatCurrency(d.orderReport.totalRevenue) }}</strong></div>
+      </div>
+      <div class="lists-row tight">
+        <div class="mini-table-card">
+          <h4>By payment method</h4>
+          <div class="table-wrap" *ngIf="d.orderReport.paymentMethods.length; else noPay">
+            <table>
+              <thead><tr><th>Method</th><th>Orders</th><th>Amount</th></tr></thead>
+              <tbody>
+                <tr *ngFor="let p of d.orderReport.paymentMethods">
+                  <td>{{ p.method }}</td>
+                  <td>{{ p.count }}</td>
+                  <td>{{ formatCurrency(p.amount) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <ng-template #noPay><p class="empty-text">No payment data.</p></ng-template>
+        </div>
+        <div class="mini-table-card">
+          <h4>Sales by category</h4>
+          <div class="table-wrap" *ngIf="d.orderReport.salesByCategory.length; else noCat">
+            <table>
+              <thead><tr><th>Category</th><th>Qty</th><th>Amount</th></tr></thead>
+              <tbody>
+                <tr *ngFor="let c of d.orderReport.salesByCategory">
+                  <td>{{ c.category }}</td>
+                  <td>{{ c.quantity }}</td>
+                  <td>{{ formatCurrency(c.amount) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <ng-template #noCat><p class="empty-text">No category sales.</p></ng-template>
+        </div>
+      </div>
+    </div>
+
+    <!-- Items report -->
+    <div class="section-card">
+      <div class="section-header">
+        <h3>Items Report</h3>
+      </div>
+      <div class="report-stats">
+        <div><span>Total items</span><strong>{{ d.itemsReport.totalItems }}</strong></div>
+        <div><span>Tracked stock</span><strong>{{ d.itemsReport.trackedItems }}</strong></div>
+        <div><span>Low stock</span><strong>{{ d.itemsReport.lowStockItems }}</strong></div>
+        <div><span>Categories</span><strong>{{ d.itemsReport.byCategory.length }}</strong></div>
+      </div>
+
+      <h4 class="sub-heading">Top selling</h4>
+      <div class="top-items-grid" *ngIf="d.itemsReport.topSelling.length; else noTop">
+        <div class="top-item-card" *ngFor="let item of d.itemsReport.topSelling">
+          <div class="thumb" [class.has-image]="hasImage(item.itemImage)" [style.background]="!hasImage(item.itemImage) ? (item.posColor || '#e2e8f0') : null">
+            <img
+              *ngIf="hasImage(item.itemImage)"
+              [src]="item.itemImage"
+              [alt]="item.itemName"
+              (error)="onImgError(item.itemImage)" />
+            <span *ngIf="!hasImage(item.itemImage)" class="thumb-initial">{{ itemInitial(item.itemName) }}</span>
+          </div>
+          <div class="top-item-meta">
+            <strong>{{ item.itemName }}</strong>
+            <span>{{ item.category }}</span>
+            <span>{{ item.totalQuantity }} sold · {{ formatCurrency(item.totalSales) }}</span>
+          </div>
+        </div>
+      </div>
+      <ng-template #noTop><p class="empty-text">No sales yet.</p></ng-template>
+
+      <h4 class="sub-heading">Items by category</h4>
+      <div class="table-wrap" *ngIf="d.itemsReport.byCategory.length">
+        <table>
+          <thead><tr><th>Category</th><th>Items</th></tr></thead>
+          <tbody>
+            <tr *ngFor="let c of d.itemsReport.byCategory">
+              <td>{{ c.category }}</td>
+              <td>{{ c.count }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Recent orders -->
+    <div class="section-card">
+      <div class="section-header"><h3>Recent Orders / Bills</h3></div>
+      <div class="table-wrap" *ngIf="d.recentOrders.length; else noOrders">
+        <table>
+          <thead>
+            <tr>
+              <th>Bill #</th>
+              <th>Customer</th>
+              <th>Items</th>
+              <th>Payment</th>
+              <th>Amount</th>
+              <th>Status</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let order of d.recentOrders">
+              <td>{{ order.billNumber }}</td>
+              <td>
+                <div class="cell-stack">
+                  <strong>{{ order.customerName }}</strong>
+                  <span *ngIf="order.phoneNumber">{{ order.phoneNumber }}</span>
+                  <span *ngIf="order.items?.length" class="line-items">
+                    {{ order.items![0].itemName }}<ng-container *ngIf="(order.items?.length || 0) > 1"> +{{ (order.items!.length - 1) }}</ng-container>
+                  </span>
+                </div>
+              </td>
+              <td>{{ order.itemCount }}</td>
+              <td>{{ display(order.paymentReceivedIn) }}</td>
+              <td>{{ formatCurrency(order.totalAmount) }}</td>
+              <td><span class="badge" [ngClass]="statusClass(order.status)">{{ order.status }}</span></td>
+              <td>{{ formatDateTime(order.createdAt) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <ng-template #noOrders><p class="empty-text">No orders for this outlet.</p></ng-template>
+    </div>
+
+    <!-- Staff with images -->
+    <div class="section-card">
+      <div class="section-header"><h3>Staff</h3></div>
+      <div class="table-wrap" *ngIf="d.staff.length; else noStaff">
+        <table>
+          <thead>
+            <tr>
+              <th>Staff</th>
+              <th>Role</th>
+              <th>Phone</th>
+              <th>ID</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let member of d.staff">
+              <td>
+                <div class="person-cell">
+                  <div class="thumb sm" [class.has-image]="hasImage(member.profileImage)">
+                    <img
+                      *ngIf="hasImage(member.profileImage)"
+                      [src]="member.profileImage"
+                      [alt]="member.userName"
+                      (error)="onImgError(member.profileImage)" />
+                    <mat-icon *ngIf="!hasImage(member.profileImage)">person</mat-icon>
+                  </div>
+                  <div class="cell-stack">
+                    <strong>{{ member.userName }}</strong>
+                    <span>{{ member.email }}</span>
+                  </div>
+                </div>
+              </td>
+              <td>{{ roleLabel(member.role) }}</td>
+              <td>{{ member.phoneNumber }}</td>
+              <td>{{ display(member.uniqueId) }}</td>
+              <td><span class="badge" [ngClass]="statusClass(member.status)">{{ member.status }}</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <ng-template #noStaff><p class="empty-text">No staff assigned.</p></ng-template>
+    </div>
+
+    <!-- Full inventory -->
+    <div class="section-card">
+      <div class="section-header">
+        <h3>Full Inventory</h3>
+        <span class="list-meta">Value {{ formatCurrency(d.inventory.totalStockValue) }} · {{ d.inventory.lowStockCount }} low stock</span>
+      </div>
+      <div class="table-wrap" *ngIf="d.inventory.materials.length; else noInv">
+        <table>
+          <thead>
+            <tr>
+              <th>Material</th>
+              <th>Category</th>
+              <th>Stock</th>
+              <th>Min</th>
+              <th>Unit</th>
+              <th>Price</th>
+              <th>Value</th>
+              <th>Code</th>
+              <th>Tax %</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let m of d.inventory.materials" [class.row-warn]="m.isLowStock">
+              <td>
+                <div class="cell-stack">
+                  <strong>{{ m.name }}</strong>
+                  <span *ngIf="m.description">{{ m.description }}</span>
+                </div>
+              </td>
+              <td>{{ m.category }}</td>
+              <td>{{ m.currentStock }}</td>
+              <td>{{ m.minStock }}</td>
+              <td>{{ m.unit }}</td>
+              <td>{{ formatCurrency(m.purchasePrice) }}</td>
+              <td>{{ formatCurrency(m.stockValue) }}</td>
+              <td>{{ display(m.materialCode || m.barcode) }}</td>
+              <td>{{ m.taxRate ?? 0 }}%</td>
+              <td>
+                <span class="badge" [ngClass]="m.isLowStock ? 'badge-warning' : (m.isActive ? 'badge-success' : 'badge-muted')">
+                  {{ m.isLowStock ? 'Low' : (m.isActive ? 'OK' : 'Inactive') }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <ng-template #noInv><p class="empty-text">No inventory materials.</p></ng-template>
+    </div>
+
+    <!-- Menu items with images -->
+    <div class="section-card">
+      <div class="section-header"><h3>Menu Items</h3></div>
+      <div class="table-wrap" *ngIf="d.items.length; else noItems">
+        <table>
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th>Category</th>
+              <th>Price</th>
+              <th>Cost</th>
+              <th>Stock</th>
+              <th>SKU / Barcode</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of d.items" [class.row-warn]="item.isLowStock">
+              <td>
+                <div class="person-cell">
+                  <div
+                    class="thumb sm"
+                    [class.has-image]="hasImage(item.itemImage)"
+                    [style.background]="!hasImage(item.itemImage) ? (item.posColor || '#e2e8f0') : null">
+                    <img
+                      *ngIf="hasImage(item.itemImage)"
+                      [src]="item.itemImage"
+                      [alt]="item.itemName"
+                      (error)="onImgError(item.itemImage)" />
+                    <span *ngIf="!hasImage(item.itemImage)" class="thumb-initial">{{ itemInitial(item.itemName) }}</span>
+                  </div>
+                  <div class="cell-stack">
+                    <strong>{{ item.itemName }}</strong>
+                    <span *ngIf="item.withTax">GST {{ item.gst || 0 }}%</span>
+                  </div>
+                </div>
+              </td>
+              <td>{{ item.category }}</td>
+              <td>{{ formatCurrency(item.salePrice) }}</td>
+              <td>{{ formatCurrency(item.costPrice) }}</td>
+              <td>
+                <ng-container *ngIf="item.trackStock; else noTrack">
+                  {{ item.stockQuantity ?? 0 }}
+                  <span class="badge badge-warning" *ngIf="item.isLowStock">Low</span>
+                </ng-container>
+                <ng-template #noTrack>—</ng-template>
+              </td>
+              <td>{{ display(item.sku || item.barcode) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <ng-template #noItems><p class="empty-text">No menu items.</p></ng-template>
+    </div>
+  </ng-container>
+</section>

@@ -38,6 +38,11 @@ export const API_ENDPOINTS = {
   ORDERS_PRINTER_UPDATE: (id: string) => `${API_BASE_URL}/printer-orders/${id}`,
   /** Dashboard overview stats: GET (Bearer token required) */
   DASHBOARD_OVERVIEW: `${API_BASE_URL}/dashboard/overview`,
+  /** Per-user admin dashboard: GET /dashboard/users/:userId?outletId= */
+  DASHBOARD_USER: (userId: string, outletId?: string) => {
+    const base = `${API_BASE_URL}/dashboard/users/${userId}`;
+    return outletId ? `${base}?outletId=${encodeURIComponent(outletId)}` : base;
+  },
   /** Services list: GET. Create/update when backend is ready. */
   SERVICES: `${API_BASE_URL}/services`,
   SERVICE_UPDATE: (id: string) => `${API_BASE_URL}/services/${id}`,

@@ -1,11 +1,12 @@
 import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
+import { Router } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { Subject, catchError, of } from 'rxjs';
 import { API_ENDPOINTS } from '../../utilities/constant/api-url.constant';
-import { UserDetailsDialogComponent } from './user-details-dialog/user-details-dialog.component';
+import { PAGE_URL } from '../../utilities/constant/page-url.constant';
 import { NumberPaginatorComponent } from '../../shared/components/number-paginator/number-paginator.component';
 
 export interface OutletData {
@@ -58,13 +59,15 @@ interface ApiResponse {
 @Component({
   selector: 'app-users',
   standalone: true,
-  imports: [CommonModule, MatIconModule, MatDialogModule, NumberPaginatorComponent],
+  imports: [CommonModule, FormsModule, MatIconModule, NumberPaginatorComponent],
   templateUrl: './users.component.html',
   styleUrls: ['./users.component.scss']
 })
 export class UsersComponent implements OnInit, OnDestroy {
   users: User[] = [];
+  filteredUsers: User[] = [];
   pagedUsers: User[] = [];
+  searchQuery = '';
   loading = false;
   error: string | null = null;
   pageIndex = 0;
@@ -75,7 +78,7 @@ export class UsersComponent implements OnInit, OnDestroy {
   constructor(
     private http: HttpClient,
     private cdr: ChangeDetectorRef,
-    private dialog: MatDialog
+    private router: Router
   ) {}
 
   ngOnInit(): void {
@@ -99,13 +102,14 @@ export class UsersComponent implements OnInit, OnDestroy {
         if (response.body && response.body.status === 'success' && response.body.data) {
           this.users = response.body.data;
           this.pageIndex = 0;
-          this.applyPagination();
+          this.applyFilters();
           this.cdr.detectChanges();
           console.log('Users loaded:', this.users.length);
         } else {
           console.warn('Invalid response format:', response.body);
           this.error = 'Invalid response format';
           this.users = [];
+          this.filteredUsers = [];
           this.pagedUsers = [];
         }
       },
@@ -124,10 +128,23 @@ export class UsersComponent implements OnInit, OnDestroy {
           this.error = error.error?.message || error.message || `Failed to fetch users (Status: ${error.status || 'Unknown'}). Please try again later.`;
         }
         this.users = [];
+        this.filteredUsers = [];
         this.pagedUsers = [];
         this.cdr.detectChanges();
       }
     });
+  }
+
+  onSearchChange(): void {
+    this.pageIndex = 0;
+    this.applyFilters();
+    this.cdr.detectChanges();
+  }
+
+  clearSearch(): void {
+    if (!this.searchQuery) return;
+    this.searchQuery = '';
+    this.onSearchChange();
   }
 
   onPageChange(pageIndex: number): void {
@@ -136,9 +153,41 @@ export class UsersComponent implements OnInit, OnDestroy {
     this.cdr.detectChanges();
   }
 
+  private applyFilters(): void {
+    const query = this.searchQuery.trim().toLowerCase();
+    if (!query) {
+      this.filteredUsers = [...this.users];
+    } else {
+      this.filteredUsers = this.users.filter((user) => this.matchesSearch(user, query));
+    }
+    this.applyPagination();
+  }
+
+  private matchesSearch(user: User, query: string): boolean {
+    const haystack = [
+      user.firstName,
+      user.lastName,
+      this.getFullName(user),
+      user.brandName,
+      user.email,
+      user.mobile,
+      user.city,
+      user.state,
+      user.address,
+      this.getBusinessName(user),
+      ...(user.outletData || []).map((o) => o.businessName),
+      ...(user.outletData || []).map((o) => o.phoneNumber),
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+
+    return haystack.includes(query);
+  }
+
   private applyPagination(): void {
     const start = this.pageIndex * this.pageSize;
-    this.pagedUsers = this.users.slice(start, start + this.pageSize);
+    this.pagedUsers = this.filteredUsers.slice(start, start + this.pageSize);
   }
 
   refreshUsers(): void {
@@ -188,12 +237,16 @@ export class UsersComponent implements OnInit, OnDestroy {
     return this.users.length;
   }
 
+  get filteredCount(): number {
+    return this.filteredUsers.length;
+  }
+
   get activeUsers(): number {
-    return this.users.filter(user => user.activate).length;
+    return this.filteredUsers.filter(user => user.activate).length;
   }
 
   get pendingUsers(): number {
-    return this.users.filter(user => !user.activate).length;
+    return this.filteredUsers.filter(user => !user.activate).length;
   }
 
   getBusinessName(user: User): string {
@@ -221,14 +274,7 @@ export class UsersComponent implements OnInit, OnDestroy {
   }
 
   openUserDetails(user: User): void {
-    this.dialog.open(UserDetailsDialogComponent, {
-      width: '90%',
-      maxWidth: '700px',
-      maxHeight: '90vh',
-      disableClose: false,
-      panelClass: 'user-details-dialog',
-      data: user
-    });
+    this.router.navigateByUrl(PAGE_URL.USER_DASHBOARD(user.id));
   }
 }
 

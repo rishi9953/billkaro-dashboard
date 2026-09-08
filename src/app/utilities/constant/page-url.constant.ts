@@ -1,6 +1,7 @@
 export const PAGE_URL = {
   HOME: '/dashboard/home',
   USERS: '/dashboard/users',
+  USER_DASHBOARD: (userId: string) => `/dashboard/users/${userId}`,
   SUB_ADMINS: '/dashboard/sub-admins',
   SUBSCRIPTIONS: '/subscriptions',
   SERVICES: '/services',
