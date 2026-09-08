@@ -100,7 +100,7 @@ export class UsersComponent implements OnInit, OnDestroy {
         console.log('Users API response: here', response);
         this.loading = false;
         if (response.body && response.body.status === 'success' && response.body.data) {
-          this.users = response.body.data;
+          this.users = this.sortByLatest(response.body.data);
           this.pageIndex = 0;
           this.applyFilters();
           this.cdr.detectChanges();
@@ -155,12 +155,17 @@ export class UsersComponent implements OnInit, OnDestroy {
 
   private applyFilters(): void {
     const query = this.searchQuery.trim().toLowerCase();
-    if (!query) {
-      this.filteredUsers = [...this.users];
-    } else {
-      this.filteredUsers = this.users.filter((user) => this.matchesSearch(user, query));
-    }
+    const list = !query
+      ? [...this.users]
+      : this.users.filter((user) => this.matchesSearch(user, query));
+    this.filteredUsers = this.sortByLatest(list);
     this.applyPagination();
+  }
+
+  private sortByLatest(users: User[]): User[] {
+    return [...users].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
   }
 
   private matchesSearch(user: User, query: string): boolean {
@@ -264,6 +269,17 @@ export class UsersComponent implements OnInit, OnDestroy {
     const first = user?.firstName?.trim() ?? '';
     const last = user?.lastName?.trim() ?? '';
     return [first, last].filter(Boolean).join(' ') || user?.brandName || '—';
+  }
+
+  formatJoinedDate(value: string | null | undefined): string {
+    if (!value) return '—';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '—';
+    return date.toLocaleDateString('en-IN', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
   }
 
   /** Track failed image loads so we can show placeholder */

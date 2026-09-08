@@ -65,6 +65,7 @@
               <th>Mobile</th>
               <th>City</th>
               <th>State</th>
+              <th>Joined</th>
               <th>Status</th>
               <th>Actions</th>
             </tr>
@@ -88,6 +89,7 @@
               <td>{{ user.mobile }}</td>
               <td>{{ user.city || 'N/A' }}</td>
               <td>{{ user.state || 'N/A' }}</td>
+              <td class="joined-date">{{ formatJoinedDate(user.createdAt) }}</td>
               <td>
                 <span [class]="'status-badge ' + getStatusClass(user.activate)">
                   {{ getStatusText(user.activate) }}

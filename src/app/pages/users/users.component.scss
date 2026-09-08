@@ -343,6 +343,12 @@
   }
 }
 
+.joined-date {
+  white-space: nowrap;
+  color: var(--app-text-secondary);
+  font-size: 13px;
+}
+
 .status-badge {
   padding: 4px 12px;
   border-radius: 12px;
