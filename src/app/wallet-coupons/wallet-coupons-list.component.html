@@ -1,0 +1,73 @@
+<div class="wallet-coupons-container">
+  <div class="wallet-coupons-header">
+    <h1 class="page-title">Wallet Coupons</h1>
+    <p class="page-subtitle">
+      Create coupon codes that credit money to outlet wallets when redeemed in the BillKaro app.
+    </p>
+  </div>
+
+  <div *ngIf="loading" class="loading-container">
+    <div class="loading-spinner"></div>
+    <p>Loading wallet coupons...</p>
+  </div>
+
+  <div *ngIf="error && !loading" class="error-container">
+    <mat-icon class="error-icon">error_outline</mat-icon>
+    <p class="error-message">{{ error }}</p>
+    <button class="retry-btn" (click)="fetchCoupons()">Retry</button>
+  </div>
+
+  <div *ngIf="!loading" class="cards-grid-wrapper">
+    <div *ngIf="coupons.length === 0" class="empty-state">
+      <mat-icon>confirmation_number</mat-icon>
+      <p>No wallet coupons yet</p>
+      <p class="empty-subtitle">Use the + button to create your first coupon code</p>
+    </div>
+
+    <div class="cards-grid" *ngIf="coupons.length > 0">
+      <div *ngFor="let coupon of coupons" class="wallet-coupon-card">
+        <div class="card-top">
+          <div>
+            <h3 class="card-code">{{ coupon.code }}</h3>
+            <p class="card-amount">{{ formatAmount(coupon.creditAmount) }}</p>
+            <p class="card-usage">{{ usageLabel(coupon) }}</p>
+          </div>
+          <span class="status-pill" [class.inactive]="!coupon.active">
+            {{ coupon.active ? 'Active' : 'Inactive' }}
+          </span>
+        </div>
+
+        <p class="card-description" *ngIf="coupon.description">{{ coupon.description }}</p>
+        <p class="card-meta">
+          Starts {{ formatDate(coupon.startsAt) }} · Expires {{ formatDate(coupon.expiresAt) }}
+        </p>
+        <p class="card-meta">Created {{ formatDate(coupon.createdAt) }}</p>
+
+        <div class="card-actions">
+          <button mat-icon-button type="button" (click)="openEditDialog(coupon)" aria-label="Edit">
+            <mat-icon>edit</mat-icon>
+          </button>
+          <button
+            mat-icon-button
+            type="button"
+            (click)="deleteCoupon(coupon)"
+            [disabled]="deletingId === coupon.id"
+            aria-label="Delete"
+          >
+            <mat-icon>delete</mat-icon>
+          </button>
+          <mat-slide-toggle
+            [checked]="coupon.active"
+            [disabled]="togglingId === coupon.id || deletingId === coupon.id"
+            (change)="onToggleChange(coupon, $event.checked)"
+            color="primary"
+          ></mat-slide-toggle>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <button class="fab" (click)="openAddDialog()" aria-label="Add wallet coupon">
+    <mat-icon>add</mat-icon>
+  </button>
+</div>

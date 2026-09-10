@@ -1,0 +1,73 @@
+<div class="dialog-container">
+  <div class="dialog-header">
+    <h2 class="dialog-title">{{ isEditMode ? 'Edit Wallet Coupon' : 'Create Wallet Coupon' }}</h2>
+    <button mat-icon-button class="close-btn" (click)="closeDialog()" aria-label="Close dialog">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <div class="dialog-content">
+    <form [formGroup]="couponForm" (ngSubmit)="onSubmit()">
+      <div class="form-card">
+        <div class="form-group">
+          <label for="code">Coupon code *</label>
+          <input
+            id="code"
+            type="text"
+            formControlName="code"
+            placeholder="e.g. SAVE1000"
+            maxlength="8"
+            style="text-transform: uppercase"
+          />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="creditAmount">Credit amount (₹) *</label>
+            <input id="creditAmount" type="number" formControlName="creditAmount" min="1" />
+          </div>
+          <div class="form-group">
+            <label for="maxRedemptions">Max redemptions</label>
+            <input
+              id="maxRedemptions"
+              type="number"
+              formControlName="maxRedemptions"
+              min="1"
+              placeholder="Unlimited"
+            />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="description">Description</label>
+          <textarea id="description" rows="2" formControlName="description"></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="startsAt">Starts on</label>
+            <input id="startsAt" type="date" formControlName="startsAt" />
+          </div>
+          <div class="form-group">
+            <label for="expiresAt">Expires on</label>
+            <input id="expiresAt" type="date" formControlName="expiresAt" />
+          </div>
+        </div>
+
+        <div class="form-group toggle-row">
+          <label>Active</label>
+          <mat-slide-toggle formControlName="active" color="primary"></mat-slide-toggle>
+        </div>
+      </div>
+
+      <div class="error-message dialog-error" *ngIf="error">{{ error }}</div>
+
+      <div class="dialog-actions">
+        <button type="button" mat-button (click)="closeDialog()">Cancel</button>
+        <button type="submit" mat-flat-button color="primary" [disabled]="loading">
+          {{ loading ? 'Saving...' : (isEditMode ? 'Update' : 'Create Coupon') }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

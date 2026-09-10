@@ -9,5 +9,6 @@ export const PAGE_URL = {
   PAYMENTS: '/payments',
   ORDERS: '/orders',
   WALLET_CARDS: '/wallet-cards',
+  WALLET_COUPONS: '/wallet-coupons',
   PROFILE: '/profile',
 };

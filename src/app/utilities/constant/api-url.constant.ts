@@ -5,8 +5,8 @@
  */
 export const API_BASE_URL = 
 // 'https://65.2.81.212/api';
-    // 'https://api.billkrochillkro.com/api';
-  'https://nmsmfkdd-3000.inc1.devtunnels.ms/api';
+    'https://api.billkrochillkro.com/api';
+  // 'https://nmsmfkdd-3000.inc1.devtunnels.ms/api';
 
 // 'https://65.2.81.212/api'
 
@@ -49,6 +49,9 @@ export const API_ENDPOINTS = {
   /** Wallet recharge cards: GET/POST /api/wallet-cards */
   WALLET_CARDS: `${API_BASE_URL}/wallet-cards`,
   WALLET_CARD_UPDATE: (id: string) => `${API_BASE_URL}/wallet-cards/${id}`,
+  /** Wallet coupon codes: GET/POST /api/wallet-coupons */
+  WALLET_COUPONS: `${API_BASE_URL}/wallet-coupons`,
+  WALLET_COUPON_UPDATE: (id: string) => `${API_BASE_URL}/wallet-coupons/${id}`,
   /** Admin outlet wallets: GET /api/wallet/admin/all */
   WALLET_ADMIN_ALL: `${API_BASE_URL}/wallet/admin/all`,
 };

@@ -46,6 +46,12 @@ export const SIDEBAR_ROUTING: NavItemLinkType[] = [
     accessName: 'WALLET_CARDS',
   },
   {
+    label: 'Wallet Coupons',
+    icon: 'confirmation_number',
+    path: PAGE_URL.WALLET_COUPONS,
+    accessName: 'WALLET_COUPONS',
+  },
+  {
     label: 'Printer Orders',
     icon: 'print',
     path: PAGE_URL.ORDERS,

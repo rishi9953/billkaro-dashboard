@@ -23,10 +23,18 @@ section {
       display: flex;
       flex-direction: column;
       justify-content: space-between;
+      overflow: hidden;
       transition: width 0.25s ease;
 
       & > div:first-child {
-        height: calc(100% - 70px);
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+      }
+
+      & > div:last-child {
+        flex-shrink: 0;
       }
 
       .siderbar-heading {
@@ -36,6 +44,7 @@ section {
         padding: 22px 0;
         border-bottom: 1px solid var(--app-border-sidebar);
         position: relative;
+        flex-shrink: 0;
 
         .logo {
           display: flex;
@@ -84,8 +93,10 @@ section {
 
       .pages-sidebar-item-list {
         &.top {
-          height: calc(100% - 160px);
+          flex: 1;
+          min-height: 0;
           overflow-y: auto;
+          overflow-x: hidden;
           padding: 20px 0;
         }
 
@@ -394,6 +405,7 @@ section {
 .pages-sidebar-item-list.top {
   scrollbar-width: thin;
   scrollbar-color: #c1c1c1 transparent;
+  overflow-x: hidden;
 
   &::-webkit-scrollbar {
     width: 6px;

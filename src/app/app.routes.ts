@@ -68,6 +68,13 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'wallet-coupons',
+        loadComponent: () =>
+          import('./wallet-coupons/wallet-coupons-list.component').then(
+            (m) => m.WalletCouponsListComponent
+          ),
+      },
+      {
         path: 'orders',
         loadComponent: () =>
           import('./orders/orders-list.component').then(
