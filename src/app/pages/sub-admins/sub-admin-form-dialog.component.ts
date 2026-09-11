@@ -41,7 +41,8 @@ export class SubAdminFormDialogComponent implements OnInit {
     this.form = this.fb.group({
       name: ['', [Validators.required, Validators.minLength(2)]],
       email: ['', [Validators.required, Validators.email]],
-      phoneNumber: [''],
+      phoneNumber: ['', [Validators.required]],
+      address: ['', [Validators.required]],
       password: [''],
       confirmPassword: ['']
     });
@@ -50,7 +51,8 @@ export class SubAdminFormDialogComponent implements OnInit {
       this.form.patchValue({
         name: data!.name,
         email: data!.email,
-        phoneNumber: data!.phoneNumber || ''
+        phoneNumber: data!.phoneNumber || '',
+        address: data!.address || ''
       });
       this.form.get('email')?.disable(); // Often email is read-only on edit
       this.form.get('password')?.clearValidators();
@@ -113,13 +115,12 @@ export class SubAdminFormDialogComponent implements OnInit {
     }
 
     const raw = this.form.getRawValue();
-    const payload: { name: string; email: string; password?: string; phoneNumber?: string } = {
+    const payload: { name: string; email: string; password?: string; phoneNumber: string; address: string } = {
       name: (raw.name || '').trim(),
-      email: (raw.email || '').trim()
+      email: (raw.email || '').trim(),
+      phoneNumber: (raw.phoneNumber || '').trim(),
+      address: (raw.address || '').trim()
     };
-    if ((raw.phoneNumber || '').trim()) {
-      payload.phoneNumber = (raw.phoneNumber || '').trim();
-    }
     if (!this.isEditMode && password) {
       payload.password = password;
     }
@@ -143,6 +144,7 @@ export class SubAdminFormDialogComponent implements OnInit {
         error: (err) => {
           this.loading = false;
           this.error = this.getErrorMessage(err);
+          console.error('Error updating sub admin:', err);
         }
       });
     } else {
@@ -155,18 +157,26 @@ export class SubAdminFormDialogComponent implements OnInit {
         error: (err) => {
           this.loading = false;
           this.error = this.getErrorMessage(err);
+          console.error('Error creating sub admin:', err);
         }
       });
     }
   }
 
-  private getErrorMessage(error: { status?: number; error?: { message?: string }; message?: string }): string {
+  private getErrorMessage(error: { status?: number; error?: string | { message?: string | string[] }; message?: string }): string {
     if (error.status === 0) {
       return 'Network error. Please check your connection and API server.';
     }
-    if (error.error) {
-      if (typeof error.error === 'string') return error.error;
-      if (error.error.message) return error.error.message;
+    const body = error.error;
+    if (typeof body === 'string') {
+      return body.trim() || error.message || 'Something went wrong. Please try again.';
+    }
+    const message = body?.message;
+    if (Array.isArray(message)) {
+      return message.filter(Boolean).join(' ');
+    }
+    if (typeof message === 'string' && message.trim()) {
+      return message;
     }
     return error.message || 'Something went wrong. Please try again.';
   }

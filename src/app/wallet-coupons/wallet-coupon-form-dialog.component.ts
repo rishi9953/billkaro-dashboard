@@ -1,5 +1,13 @@
 import { Component, Inject, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import {
+  AbstractControl,
+  FormBuilder,
+  FormGroup,
+  ValidationErrors,
+  ValidatorFn,
+  Validators,
+  ReactiveFormsModule,
+} from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import {
@@ -41,15 +49,26 @@ export class WalletCouponFormDialogComponent implements OnInit {
     @Inject(MAT_DIALOG_DATA) public data: WalletCouponItem | null
   ) {
     this.isEditMode = !!data;
-    this.couponForm = this.formBuilder.group({
-      code: ['', [Validators.required, Validators.minLength(8), Validators.maxLength(8)]],
-      creditAmount: [null, [Validators.required, Validators.min(1)]],
-      description: ['', [Validators.maxLength(300)]],
-      maxRedemptions: [null, [Validators.min(1)]],
-      startsAt: [''],
-      expiresAt: [''],
-      active: [true],
-    });
+    this.couponForm = this.formBuilder.group(
+      {
+        code: [
+          '',
+          [
+            Validators.required,
+            Validators.minLength(8),
+            Validators.maxLength(8),
+            Validators.pattern(/^[A-Za-z0-9]{8}$/),
+          ],
+        ],
+        creditAmount: [null, [Validators.required, Validators.min(1)]],
+        description: ['', [Validators.maxLength(300)]],
+        maxRedemptions: [null, [Validators.min(1), this.wholeNumberValidator]],
+        startsAt: [''],
+        expiresAt: ['', [this.notPastOnCreateValidator()]],
+        active: [true],
+      },
+      { validators: [this.dateRangeValidator] }
+    );
   }
 
   ngOnInit(): void {
@@ -66,8 +85,68 @@ export class WalletCouponFormDialogComponent implements OnInit {
     }
   }
 
-  get f() {
-    return this.couponForm.controls;
+  hasFieldError(name: string): boolean {
+    return this.fieldError(name) != null;
+  }
+
+  fieldError(name: string): string | null {
+    if (!this.submitted) return null;
+    if (name === 'expiresAt' && this.couponForm.hasError('expiresBeforeStart')) {
+      return 'Expiry date must be on or after the start date';
+    }
+    const control = this.couponForm.get(name);
+    if (!control || !control.errors) return null;
+    const errors = control.errors;
+    if (errors['required']) {
+      if (name === 'code') return 'Coupon code is required';
+      if (name === 'creditAmount') return 'Credit amount is required';
+      return 'This field is required';
+    }
+    if (errors['pattern'] || errors['minlength'] || errors['maxlength']) {
+      if (name === 'code') return 'Use exactly 8 letters or numbers';
+    }
+    if (errors['min']) {
+      if (name === 'creditAmount') return 'Credit amount must be at least ₹1';
+      if (name === 'maxRedemptions') return 'Max redemptions must be at least 1';
+    }
+    if (errors['maxlength']) return 'Max 300 characters';
+    if (errors['wholeNumber']) return 'Enter a whole number';
+    if (errors['pastDate']) return 'Expiry date cannot be in the past';
+    return 'Enter a valid value';
+  }
+
+  private wholeNumberValidator(control: AbstractControl): ValidationErrors | null {
+    const value = control.value;
+    if (value === null || value === undefined || value === '') return null;
+    const amount = Number(value);
+    if (!Number.isFinite(amount) || !Number.isInteger(amount)) {
+      return { wholeNumber: true };
+    }
+    return null;
+  }
+
+  private notPastOnCreateValidator(): ValidatorFn {
+    return (control: AbstractControl): ValidationErrors | null => {
+      if (this.isEditMode) return null;
+      const value = (control.value ?? '').toString().trim();
+      if (!value) return null;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const selected = new Date(`${value}T00:00:00`);
+      if (Number.isNaN(selected.getTime()) || selected < today) {
+        return { pastDate: true };
+      }
+      return null;
+    };
+  }
+
+  private dateRangeValidator(group: AbstractControl): ValidationErrors | null {
+    const start = (group.get('startsAt')?.value ?? '').toString().trim();
+    const end = (group.get('expiresAt')?.value ?? '').toString().trim();
+    if (start && end && end < start) {
+      return { expiresBeforeStart: true };
+    }
+    return null;
   }
 
   closeDialog(): void {
@@ -92,7 +171,15 @@ export class WalletCouponFormDialogComponent implements OnInit {
   onSubmit(): void {
     this.submitted = true;
     this.error = null;
+    this.couponForm.markAllAsTouched();
     if (this.couponForm.invalid) return;
+
+    const startsAt = (this.couponForm.get('startsAt')?.value ?? '').toString().trim();
+    const expiresAt = (this.couponForm.get('expiresAt')?.value ?? '').toString().trim();
+    if (startsAt && expiresAt && expiresAt < startsAt) {
+      this.error = 'Expiry date must be on or after the start date';
+      return;
+    }
 
     this.loading = true;
     const maxRaw = this.couponForm.get('maxRedemptions')?.value;
