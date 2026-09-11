@@ -185,34 +185,8 @@ export class SubscriptionFormDialogComponent implements OnInit {
         },
         error: (error) => {
           this.loading = false;
-          console.error('Error updating subscription plan - Full error:', error);
-          console.error('Error status:', error.status);
-          console.error('Error statusText:', error.statusText);
-          console.error('Error message:', error.message);
-          console.error('Error body:', error.error);
-          
-          let errorMessage = 'Failed to update subscription plan. Please try again.';
-          if (error.error) {
-            if (typeof error.error === 'string') {
-              errorMessage = error.error;
-            } else if (error.error.message) {
-              errorMessage = error.error.message;
-            } else if (error.error.error) {
-              errorMessage = error.error.error;
-            }
-          } else if (error.message) {
-            errorMessage = error.message;
-          }
-          
-          if (error.status === 0) {
-            errorMessage = 'Network error: Unable to connect to the server. Please check your internet connection and ensure the API server is running.';
-          } else if (error.status === 404) {
-            errorMessage = 'API endpoint not found. Please verify the API URL is correct.';
-          } else if (error.status === 500) {
-            errorMessage = 'Server error: ' + (errorMessage || 'Internal server error occurred.');
-          }
-          
-          this.error = errorMessage;
+          console.error('Error updating subscription plan:', error);
+          this.error = this.getErrorMessage(error, 'update');
         }
       });
     } else {
@@ -232,39 +206,49 @@ export class SubscriptionFormDialogComponent implements OnInit {
         },
         error: (error) => {
           this.loading = false;
-          console.error('Error creating subscription plan - Full error:', error);
-          console.error('Error status:', error.status);
-          console.error('Error statusText:', error.statusText);
-          console.error('Error message:', error.message);
-          console.error('Error body:', error.error);
-          
-          let errorMessage = 'Failed to create subscription plan. Please try again.';
-          if (error.error) {
-            if (typeof error.error === 'string') {
-              errorMessage = error.error;
-            } else if (error.error.message) {
-              errorMessage = error.error.message;
-            } else if (error.error.error) {
-              errorMessage = error.error.error;
-            }
-          } else if (error.message) {
-            errorMessage = error.message;
-          }
-          
-          if (error.status === 0) {
-            errorMessage = 'Network error: Unable to connect to the server. Please check your internet connection and ensure the API server is running.';
-          } else if (error.status === 404) {
-            errorMessage = 'API endpoint not found. Please verify the API URL is correct.';
-          } else if (error.status === 500) {
-            errorMessage = 'Server error: ' + (errorMessage || 'Internal server error occurred.');
-          } else if (error.status === 400) {
-            errorMessage = 'Bad request: ' + (errorMessage || 'Please check your input data.');
-          }
-          
-          this.error = errorMessage;
+          console.error('Error creating subscription plan:', error);
+          this.error = this.getErrorMessage(error, 'create');
         }
       });
     }
+  }
+
+  private getErrorMessage(
+    error: { status?: number; error?: string | { message?: string | string[]; error?: string }; message?: string },
+    action: 'create' | 'update'
+  ): string {
+    if (error.status === 0) {
+      return 'Network error: Unable to connect to the server. Please check your internet connection and ensure the API server is running.';
+    }
+
+    const body = error.error;
+    let detail = '';
+    if (typeof body === 'string') {
+      detail = body.trim();
+    } else {
+      const message = body?.message;
+      if (Array.isArray(message)) {
+        detail = message.filter(Boolean).join(' ');
+      } else if (typeof message === 'string') {
+        detail = message.trim();
+      } else if (typeof body?.error === 'string') {
+        detail = body.error.trim();
+      }
+    }
+    if (!detail && error.message) {
+      detail = error.message;
+    }
+
+    if (error.status === 404) {
+      return 'API endpoint not found. Please verify the API URL is correct.';
+    }
+    if (error.status === 400) {
+      return detail ? `Bad request: ${detail}` : 'Bad request: Please check your input data.';
+    }
+    if (error.status === 500) {
+      return `Server error: ${detail || 'Internal server error occurred.'}`;
+    }
+    return detail || `Failed to ${action} subscription plan. Please try again.`;
   }
 
   resetForm(): void {
