@@ -10,7 +10,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { MatIconModule } from '@angular/material/icon';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { Subject } from 'rxjs';
 import { Chart, ChartConfiguration, registerables } from 'chart.js';
 import { API_ENDPOINTS } from '../../utilities/constant/api-url.constant';
@@ -31,12 +31,6 @@ export interface RecentlyRegistered {
   companyName: string;
   planType: string;
   userCount: number;
-  colorIndex: number;
-}
-
-export interface RecentPlanExpired {
-  companyName: string;
-  expiredDate: string;
   colorIndex: number;
 }
 
@@ -83,6 +77,8 @@ interface PaymentsApiResponse {
   totalItems?: number;
 }
 
+type SignupPeriod = 'weekly' | 'monthly' | 'yearly';
+
 const AVATAR_COLORS = ['#22c55e', '#3b82f6', '#8b5cf6', '#f59e0b', '#ec4899', '#0ea5e9', '#6366f1', '#14b8a6'];
 
 @Component({
@@ -107,10 +103,11 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   activeSubscriptions = 0;
   trialUsers = 0;
   totalOrdersRevenue = '₹0';
+  rawRevenue = 0;
 
+  signupPeriod: SignupPeriod = 'monthly';
   recentTransactions: RecentTransaction[] = [];
   recentlyRegistered: RecentlyRegistered[] = [];
-  recentPlanExpired: RecentPlanExpired[] = [];
 
   readonly pageUrl = PAGE_URL;
 
@@ -121,22 +118,41 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
 
   constructor(
     private http: HttpClient,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private router: Router,
   ) {}
 
   ngOnInit(): void {
     this.fetchDashboardData();
   }
 
-  ngAfterViewInit(): void {
-    // Charts are inside *ngIf="!loading"; init when loading flips to false (see fetchUserData)
-  }
+  ngAfterViewInit(): void {}
 
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
     this.lineChart?.destroy();
     this.doughnutChart?.destroy();
+  }
+
+  get engagementRate(): string {
+    if (!this.totalUsers) return '0.0';
+    return ((this.activeUsers / this.totalUsers) * 100).toFixed(1);
+  }
+
+  get dormantRate(): string {
+    if (!this.totalUsers) return '0.0';
+    return ((this.inactiveUsers / this.totalUsers) * 100).toFixed(1);
+  }
+
+  get userGrowthLabel(): string {
+    const counts = this.usersByMonth(this.lastFetchedUsers);
+    const current = counts[counts.length - 1] ?? 0;
+    const previous = counts[counts.length - 2] ?? 0;
+    if (!previous) return current > 0 ? '+100%' : '0%';
+    const pct = ((current - previous) / previous) * 100;
+    const abs = Math.abs(pct).toFixed(1);
+    return `${pct >= 0 ? '+' : '-'}${abs}%`;
   }
 
   fetchDashboardData(): void {
@@ -147,7 +163,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
           ? response.data
           : response as DashboardOverviewResponse;
         this.applyOverview(overview);
-        this.loadRecentLists(overview);
+        this.loadRecentLists();
         this.loading = false;
         this.cdr.detectChanges();
         setTimeout(() => this.initCharts(), 0);
@@ -155,7 +171,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
       },
       error: () => {
         this.applyOverview(null);
-        this.loadRecentLists(null);
+        this.loadRecentLists();
         this.loading = false;
         this.cdr.detectChanges();
         setTimeout(() => this.initCharts(), 0);
@@ -164,12 +180,46 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
+  setSignupPeriod(period: SignupPeriod): void {
+    if (this.signupPeriod === period) return;
+    this.signupPeriod = period;
+    this.refreshLineChart();
+  }
+
+  exportData(): void {
+    const rows = [
+      ['Metric', 'Value'],
+      ['Total Users', String(this.totalUsers)],
+      ['Active Users', String(this.activeUsers)],
+      ['Inactive Users', String(this.inactiveUsers)],
+      ['Total Revenue', this.totalRevenue],
+      ['Total Outlets', String(this.totalOutlets)],
+      ['Total Orders', String(this.totalOrders)],
+      ['Closed Orders', String(this.closedOrders)],
+      ['Active Subscriptions', String(this.activeSubscriptions)],
+      ['Trial Users', String(this.trialUsers)],
+    ];
+    const csv = rows.map((r) => r.map((c) => `"${c}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `billkaro-dashboard-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  goToUsers(): void {
+    this.router.navigateByUrl(PAGE_URL.USERS);
+  }
+
   private applyOverview(overview: DashboardOverviewResponse | null): void {
     if (!overview) {
       this.totalUsers = 0;
       this.activeUsers = 0;
       this.inactiveUsers = 0;
       this.totalRevenue = '₹0';
+      this.rawRevenue = 0;
       this.totalOutlets = 0;
       this.totalOrders = 0;
       this.closedOrders = 0;
@@ -181,7 +231,8 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     this.totalUsers = overview.totalUsers ?? 0;
     this.activeUsers = overview.activeUsers ?? 0;
     this.inactiveUsers = overview.inactiveUsers ?? 0;
-    this.totalRevenue = this.formatCurrency(overview.totalRevenue ?? 0);
+    this.rawRevenue = overview.totalRevenue ?? 0;
+    this.totalRevenue = this.formatCurrency(this.rawRevenue);
     this.totalOutlets = overview.totalOutlets ?? 0;
     this.totalOrders = overview.totalOrders ?? 0;
     this.closedOrders = overview.closedOrders ?? 0;
@@ -194,11 +245,9 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     return `₹${Number(amount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   }
 
-  /** Reset recent lists; then fetch from APIs */
-  private loadRecentLists(_overview: DashboardOverviewResponse | null): void {
+  private loadRecentLists(): void {
     this.recentTransactions = [];
     this.recentlyRegistered = [];
-    this.recentPlanExpired = []; // No API yet – add when backend provides expired plans list
     this.fetchPaymentsForRecent();
   }
 
@@ -240,16 +289,13 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     return AVATAR_COLORS[Math.abs(index) % AVATAR_COLORS.length];
   }
 
-  sendReminder(companyName: string): void {
-    console.log('Send reminder for', companyName);
-  }
-
   private fetchUsersForCharts(): void {
     this.http.get<UsersApiResponse>(API_ENDPOINTS.USERS, { responseType: 'json' }).subscribe({
       next: (response) => {
         if (response?.status === 'success' && Array.isArray(response.data)) {
           this.lastFetchedUsers = response.data;
-          this.updateChartsData(this.lastFetchedUsers);
+          this.refreshLineChart();
+          this.updateDoughnut();
           this.mapUsersToRecentlyRegistered(response.data);
         }
       },
@@ -265,11 +311,24 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     const sorted = [...users].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     this.recentlyRegistered = sorted.slice(0, 5).map((u, i) => ({
       companyName: u.outletData?.[0]?.businessName || u.brandName || u.id?.slice(0, 8) || '—',
-      planType: '—',
+      planType: 'New registration',
       userCount: u.outletData?.length ?? 1,
       colorIndex: i,
     }));
     this.cdr.detectChanges();
+  }
+
+  private getSignupSeries(): { labels: string[]; data: number[] } {
+    if (this.signupPeriod === 'weekly') {
+      return this.usersByWeek(this.lastFetchedUsers);
+    }
+    if (this.signupPeriod === 'yearly') {
+      return this.usersByYear(this.lastFetchedUsers);
+    }
+    return {
+      labels: this.getLast6MonthsLabels(),
+      data: this.usersByMonth(this.lastFetchedUsers),
+    };
   }
 
   private getLast6MonthsLabels(): string[] {
@@ -277,7 +336,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     const now = new Date();
     for (let i = 5; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      labels.push(d.toLocaleDateString('en-IN', { month: 'short', year: '2-digit' }));
+      labels.push(d.toLocaleDateString('en-IN', { month: 'short' }));
     }
     return labels;
   }
@@ -295,20 +354,51 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     return counts;
   }
 
-  private updateChartsData(users: User[]): void {
-    const labels = this.getLast6MonthsLabels();
-    const lineData = this.usersByMonth(users);
-
-    if (this.lineChart) {
-      this.lineChart.data.labels = labels;
-      this.lineChart.data.datasets[0].data = lineData;
-      this.lineChart.update();
+  private usersByWeek(users: User[]): { labels: string[]; data: number[] } {
+    const labels: string[] = [];
+    const data = [0, 0, 0, 0, 0, 0, 0, 0];
+    const now = new Date();
+    for (let i = 7; i >= 0; i--) {
+      const start = new Date(now);
+      start.setDate(now.getDate() - i * 7);
+      labels.push(`W${8 - i}`);
     }
+    users.forEach((u) => {
+      const created = new Date(u.createdAt);
+      const daysAgo = Math.floor((now.getTime() - created.getTime()) / (1000 * 60 * 60 * 24));
+      const weekIndex = Math.floor(daysAgo / 7);
+      if (weekIndex >= 0 && weekIndex <= 7) {
+        data[7 - weekIndex]++;
+      }
+    });
+    return { labels, data };
+  }
 
-    if (this.doughnutChart) {
-      this.doughnutChart.data.datasets[0].data = [this.activeUsers, this.inactiveUsers];
-      this.doughnutChart.update();
-    }
+  private usersByYear(users: User[]): { labels: string[]; data: number[] } {
+    const now = new Date();
+    const years: number[] = [];
+    for (let i = 4; i >= 0; i--) years.push(now.getFullYear() - i);
+    const data = years.map(() => 0);
+    users.forEach((u) => {
+      const y = new Date(u.createdAt).getFullYear();
+      const idx = years.indexOf(y);
+      if (idx >= 0) data[idx]++;
+    });
+    return { labels: years.map(String), data };
+  }
+
+  private refreshLineChart(): void {
+    if (!this.lineChart) return;
+    const series = this.getSignupSeries();
+    this.lineChart.data.labels = series.labels;
+    this.lineChart.data.datasets[0].data = series.data;
+    this.lineChart.update();
+  }
+
+  private updateDoughnut(): void {
+    if (!this.doughnutChart) return;
+    this.doughnutChart.data.datasets[0].data = [this.activeUsers, this.inactiveUsers];
+    this.doughnutChart.update();
   }
 
   private initCharts(): void {
@@ -318,22 +408,25 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     this.lineChart = null;
     this.doughnutChart = null;
 
-    const labels = this.getLast6MonthsLabels();
+    const series = this.getSignupSeries();
 
     const lineConfig: ChartConfiguration<'line'> = {
       type: 'line',
       data: {
-        labels,
+        labels: series.labels,
         datasets: [
           {
-            label: 'New users',
-            data: [0, 0, 0, 0, 0, 0],
+            label: 'Signups',
+            data: series.data,
             borderColor: 'rgb(59, 130, 246)',
-            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+            backgroundColor: 'rgba(59, 130, 246, 0.12)',
             fill: true,
-            tension: 0.35,
+            tension: 0.4,
             pointRadius: 4,
-            pointBackgroundColor: 'rgb(59, 130, 246)'
+            pointHoverRadius: 6,
+            pointBackgroundColor: 'rgb(59, 130, 246)',
+            pointBorderColor: '#fff',
+            pointBorderWidth: 2,
           }
         ]
       },
@@ -341,16 +434,27 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-          legend: { display: false }
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#1e293b',
+            padding: 10,
+            cornerRadius: 8,
+            displayColors: false,
+            callbacks: {
+              label: (ctx) => `${ctx.parsed.y} signups`,
+            },
+          },
         },
         scales: {
           y: {
             beginAtZero: true,
             ticks: { stepSize: 1 },
-            grid: { color: 'rgba(0,0,0,0.06)' }
+            grid: { color: 'rgba(0,0,0,0.05)' },
+            border: { display: false },
           },
           x: {
-            grid: { display: false }
+            grid: { display: false },
+            border: { display: false },
           }
         }
       }
@@ -364,24 +468,29 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
           {
             data: [this.activeUsers, this.inactiveUsers],
             backgroundColor: ['rgb(34, 197, 94)', 'rgb(251, 191, 36)'],
-            borderWidth: 0
+            borderWidth: 0,
+            hoverOffset: 4,
           }
         ]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        cutout: '68%',
+        cutout: '72%',
         plugins: {
-          legend: { position: 'bottom' }
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#1e293b',
+            padding: 10,
+            cornerRadius: 8,
+          },
         }
       }
     };
 
-    const lineCtx = this.lineChartCanvas?.nativeElement?.getContext('2d');
-    const doughnutCtx = this.doughnutChartCanvas?.nativeElement?.getContext('2d');
+    const lineCtx = this.lineChartCanvas.nativeElement.getContext('2d');
+    const doughnutCtx = this.doughnutChartCanvas.nativeElement.getContext('2d');
     if (lineCtx) this.lineChart = new Chart(lineCtx, lineConfig);
     if (doughnutCtx) this.doughnutChart = new Chart(doughnutCtx, doughnutConfig);
-    if (this.lastFetchedUsers.length > 0) this.updateChartsData(this.lastFetchedUsers);
   }
 }

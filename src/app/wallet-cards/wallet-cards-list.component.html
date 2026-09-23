@@ -1,76 +1,158 @@
-<div class="wallet-cards-container">
-  <div class="wallet-cards-header">
-    <h1 class="page-title">Wallet Cards</h1>
-    <p class="page-subtitle">
-      Create recharge cards shown in the BillKaro Windows app for adding money to outlet wallets.
-    </p>
-  </div>
-
-  <div *ngIf="loading" class="loading-container">
-    <div class="loading-spinner"></div>
-    <p>Loading wallet cards...</p>
-  </div>
-
-  <div *ngIf="error && !loading" class="error-container">
-    <mat-icon class="error-icon">error_outline</mat-icon>
-    <p class="error-message">{{ error }}</p>
-    <button class="retry-btn" (click)="fetchCards()">Retry</button>
-  </div>
-
-  <div *ngIf="!loading" class="cards-grid-wrapper">
-    <div *ngIf="cards.length === 0" class="empty-state">
-      <mat-icon>account_balance_wallet</mat-icon>
-      <p>No wallet cards yet</p>
-      <p class="empty-subtitle">Use the + button to create your first recharge card</p>
+<div class="wallet-page">
+  <header class="page-header">
+    <div>
+      <h1 class="page-title">Wallet Cards</h1>
+      <p class="page-subtitle">
+        Create and manage outlet wallet recharge cards shown in the BillKaro Windows app for instant balance top-ups.
+      </p>
     </div>
+    <div class="header-actions">
+      <button type="button" class="btn-outline" disabled title="Coming soon">
+        <mat-icon>swap_vert</mat-icon>
+        Reorder Cards
+      </button>
+      <button type="button" class="btn-primary" (click)="openAddDialog()">
+        <mat-icon>add</mat-icon>
+        Create Wallet Card
+      </button>
+    </div>
+  </header>
 
-    <div class="cards-grid" *ngIf="cards.length > 0">
-      <div
-        *ngFor="let card of cards"
-        class="wallet-card"
-        [style.--card-color]="card.cardColor || '#1976D2'"
-      >
-        <div class="card-top">
-          <div>
-            <h3 class="card-title">{{ card.title }}</h3>
-            <p class="card-amount">{{ formatAmount(card.amount) }}</p>
-            <p class="card-bonus" *ngIf="card.bonusAmount > 0">
-              + {{ formatAmount(card.bonusAmount) }} bonus
-            </p>
-          </div>
-          <span class="status-pill" [class.inactive]="!card.active">
-            {{ card.active ? 'Active' : 'Inactive' }}
-          </span>
-        </div>
+  <div *ngIf="error && !loading" class="error-banner">
+    <mat-icon>error_outline</mat-icon>
+    <p>{{ error }}</p>
+    <button type="button" class="btn-outline" (click)="fetchCards()">Retry</button>
+  </div>
 
-        <p class="card-description" *ngIf="card.description">{{ card.description }}</p>
-        <p class="card-meta">Sort: {{ card.sortOrder }} · {{ formatDate(card.createdAt) }}</p>
-
-        <div class="card-actions">
-          <button mat-icon-button type="button" (click)="openEditDialog(card)" aria-label="Edit">
-            <mat-icon>edit</mat-icon>
-          </button>
-          <button
-            mat-icon-button
-            type="button"
-            (click)="deleteCard(card)"
-            [disabled]="deletingId === card.id"
-            aria-label="Delete"
-          >
-            <mat-icon>delete</mat-icon>
-          </button>
-          <mat-slide-toggle
-            [checked]="card.active"
-            [disabled]="togglingId === card.id || deletingId === card.id"
-            (change)="onToggleChange(card, $event.checked)"
-            color="primary"
-          ></mat-slide-toggle>
-        </div>
+  <div class="metrics-grid">
+    <div class="metric-card">
+      <div class="metric-icon purple"><mat-icon>style</mat-icon></div>
+      <div>
+        <span class="metric-label">Total Active Cards</span>
+        <span class="metric-value">{{ activeCount }} of {{ totalCount }} Tiers</span>
+      </div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-icon green"><mat-icon>payments</mat-icon></div>
+      <div>
+        <span class="metric-label">Total Top-up Volume</span>
+        <span class="metric-value">{{ formatAmountFixed(walletTopupVolume) }}</span>
+        <span class="metric-meta success">{{ walletTopupCount }} Topups</span>
+      </div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-icon violet"><mat-icon>bolt</mat-icon></div>
+      <div>
+        <span class="metric-label">Popular Recharge</span>
+        <span class="metric-value compact" *ngIf="popularCard; else noPopular">
+          {{ formatAmount(popularCard.amount) }}
+          <span *ngIf="popularCard.bonusAmount > 0">(+{{ formatAmount(popularCard.bonusAmount) }})</span>
+        </span>
+        <ng-template #noPopular><span class="metric-value compact">—</span></ng-template>
+      </div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-icon orange"><mat-icon>percent</mat-icon></div>
+      <div>
+        <span class="metric-label">Avg. Bonus Ratio</span>
+        <span class="metric-value">{{ avgBonusRatio }}%</span>
+        <span class="metric-meta success">Optimal</span>
       </div>
     </div>
   </div>
 
-  <button class="fab" (click)="openAddDialog()" aria-label="Add wallet card">
+  <div class="section-head">
+    <h2>Active Windows App Packs</h2>
+    <span class="count-pill">{{ totalCount }} Cards Defined</span>
+  </div>
+
+  <div *ngIf="loading" class="loading-state">
+    <div class="spinner"></div>
+    <p>Loading wallet cards...</p>
+  </div>
+
+  <div *ngIf="!loading && cards.length === 0" class="empty-state">
+    <mat-icon>account_balance_wallet</mat-icon>
+    <p>No wallet cards yet</p>
+    <p class="empty-sub">Create your first recharge pack for the Windows POS app</p>
+    <button type="button" class="btn-primary" (click)="openAddDialog()">
+      <mat-icon>add</mat-icon>
+      Create Wallet Card
+    </button>
+  </div>
+
+  <div class="packs-grid" *ngIf="!loading && sortedCards.length > 0">
+    <article
+      *ngFor="let card of sortedCards"
+      class="pack-card"
+      [class.inactive]="!card.active"
+      [style.--accent]="card.cardColor || '#6d28d9'">
+      <div class="pack-top">
+        <div class="drag-hint"><mat-icon>drag_indicator</mat-icon></div>
+        <span class="status-badge" [class.active]="card.active" [class.scheduled]="!card.active">
+          {{ card.active ? 'Active' : 'Inactive' }}
+        </span>
+      </div>
+
+      <h3 class="pack-title">{{ card.title }}</h3>
+      <p class="pack-amount">{{ formatAmount(card.amount) }}</p>
+      <span class="bonus-pill" *ngIf="card.bonusAmount > 0">+ {{ formatAmount(card.bonusAmount) }} bonus</span>
+
+      <p class="pack-desc">{{ card.description || 'Instant top-up for outlet wallets on BillKaro Windows POS.' }}</p>
+
+      <ul class="feature-list">
+        <li *ngFor="let feature of getFeatures(card)">
+          <mat-icon>check_circle</mat-icon>
+          <span>{{ feature }}</span>
+        </li>
+      </ul>
+
+      <div class="meta-box">
+        <div>
+          <span class="meta-label">Sort Index</span>
+          <strong>{{ card.sortOrder ?? 0 }}</strong>
+        </div>
+        <div>
+          <span class="meta-label">Created</span>
+          <strong>{{ formatDate(card.createdAt) }}</strong>
+        </div>
+      </div>
+
+      <div class="pack-footer">
+        <div class="icon-actions">
+          <button type="button" class="icon-btn" (click)="openEditDialog(card)" title="Edit" aria-label="Edit">
+            <mat-icon>edit</mat-icon>
+          </button>
+          <button type="button" class="icon-btn" (click)="duplicateCard(card)" title="Duplicate" aria-label="Duplicate">
+            <mat-icon>content_copy</mat-icon>
+          </button>
+          <button
+            type="button"
+            class="icon-btn danger"
+            (click)="deleteCard(card)"
+            [disabled]="deletingId === card.id"
+            title="Delete"
+            aria-label="Delete">
+            <mat-icon>delete</mat-icon>
+          </button>
+        </div>
+
+        <button
+          type="button"
+          class="status-switch"
+          [class.on]="card.active"
+          role="switch"
+          [attr.aria-checked]="card.active"
+          [disabled]="togglingId === card.id || deletingId === card.id"
+          [title]="card.active ? 'Active — click to disable' : 'Inactive — click to enable'"
+          (click)="onToggleChange(card)">
+          <span class="status-switch-knob"></span>
+        </button>
+      </div>
+    </article>
+  </div>
+
+  <button class="fab" type="button" (click)="openAddDialog()" aria-label="Add wallet card">
     <mat-icon>add</mat-icon>
   </button>
 </div>

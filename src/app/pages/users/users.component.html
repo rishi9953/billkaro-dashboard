@@ -1,137 +1,230 @@
-<div class="users-container">
-  <div class="users-header">
-    <h1 class="page-title">Users Management</h1>
-    <button class="refresh-btn" (click)="refreshUsers()" [disabled]="loading">
-      <mat-icon>refresh</mat-icon>
-      <span>Refresh</span>
-    </button>
+<div class="users-page">
+  <header class="page-header">
+    <div>
+      <h1 class="page-title">Users Management</h1>
+      <p class="page-subtitle">Manage, verify, and monitor business user accounts across regions.</p>
+    </div>
+    <div class="header-actions">
+      <button type="button" class="btn-outline" (click)="exportCsv()" [disabled]="!filteredCount">
+        <mat-icon>file_upload</mat-icon>
+        Export CSV
+      </button>
+      <button type="button" class="btn-outline" (click)="refreshUsers()" [disabled]="loading">
+        <mat-icon>refresh</mat-icon>
+        Refresh
+      </button>
+      <button type="button" class="btn-primary" disabled title="Coming soon">
+        <mat-icon>add</mat-icon>
+        Add New User
+      </button>
+    </div>
+  </header>
+
+  <div *ngIf="error && !loading" class="error-banner">
+    <mat-icon>error_outline</mat-icon>
+    <p>{{ error }}</p>
+    <button type="button" class="btn-outline" (click)="fetchUsers()">Retry</button>
   </div>
 
-  <!-- <div *ngIf="loading" class="loading-container">
-    <div class="loading-spinner"></div>
-    <p>Loading users...</p>
-  </div> -->
-
-  <div *ngIf="error && !loading" class="error-container">
-    <mat-icon class="error-icon">error_outline</mat-icon>
-    <p class="error-message">{{ error }}</p>
-    <button class="retry-btn" (click)="fetchUsers()">Retry</button>
+  <div class="metrics-grid">
+    <div class="metric-card">
+      <span class="metric-label">Total Accounts</span>
+      <span class="metric-value">{{ totalUsers }}</span>
+      <span class="metric-badge badge-success">{{ growthLabel }}</span>
+    </div>
+    <div class="metric-card">
+      <span class="metric-label">Active Users</span>
+      <span class="metric-value">{{ activeCount }}</span>
+      <span class="metric-badge badge-success">{{ activeRate }}% Rate</span>
+    </div>
+    <div class="metric-card">
+      <span class="metric-label">Pending Verification</span>
+      <span class="metric-value">{{ pendingCount }}</span>
+      <span class="metric-badge badge-warning">Requires action</span>
+    </div>
+    <div class="metric-card">
+      <span class="metric-label">Avg. Outlets / User</span>
+      <span class="metric-value">{{ avgOutletsPerUser }}</span>
+      <span class="metric-badge badge-info">{{ totalOutlets }} Outlets</span>
+    </div>
   </div>
 
-  <div *ngIf="!loading && !error" class="users-content">
-    <div *ngIf="users.length === 0" class="empty-state">
+  <div class="users-panel">
+    <div class="panel-toolbar">
+      <div class="search-box">
+        <mat-icon class="search-icon">search</mat-icon>
+        <input
+          type="text"
+          class="search-input"
+          placeholder="Search by name, business, email, mobile, city..."
+          [(ngModel)]="searchQuery"
+          (ngModelChange)="onSearchChange()"
+          aria-label="Search users" />
+        <button
+          *ngIf="searchQuery"
+          type="button"
+          class="clear-search-btn"
+          (click)="clearSearch()"
+          aria-label="Clear search">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      <div class="filter-tabs">
+        <button
+          *ngFor="let tab of statusTabs"
+          type="button"
+          class="filter-tab"
+          [class.active]="statusFilter === tab.key"
+          (click)="setStatusFilter(tab.key)">
+          {{ tab.label }} ({{ getStatusCount(tab.key) }})
+        </button>
+      </div>
+
+      <div class="state-filter">
+        <mat-icon>location_on</mat-icon>
+        <select [(ngModel)]="selectedState" (ngModelChange)="onStateChange()" aria-label="Filter by state">
+          <option value="">State: All</option>
+          <option *ngFor="let state of uniqueStates" [value]="state">{{ state }}</option>
+        </select>
+      </div>
+    </div>
+
+    <div *ngIf="loading" class="panel-loading">
+      <div class="spinner"></div>
+      <p>Loading users...</p>
+    </div>
+
+    <div *ngIf="!loading && users.length === 0 && !error" class="empty-state">
       <mat-icon>people_outline</mat-icon>
       <p>No users found</p>
     </div>
 
-    <ng-container *ngIf="users.length > 0">
-      <div class="users-toolbar">
-        <div class="search-box">
-          <mat-icon class="search-icon">search</mat-icon>
-          <input
-            type="text"
-            class="search-input"
-            placeholder="Search by name, business, email, mobile, city..."
-            [(ngModel)]="searchQuery"
-            (ngModelChange)="onSearchChange()"
-            aria-label="Search users" />
-          <button
-            *ngIf="searchQuery"
-            type="button"
-            class="clear-search-btn"
-            (click)="clearSearch()"
-            aria-label="Clear search">
-            <mat-icon>close</mat-icon>
-          </button>
-        </div>
-        <p class="search-result-count" *ngIf="searchQuery.trim()">
-          Showing <strong>{{ filteredCount }}</strong> of <strong>{{ totalUsers }}</strong>
-        </p>
-      </div>
+    <div *ngIf="!loading && users.length > 0 && filteredUsers.length === 0" class="empty-state">
+      <mat-icon>search_off</mat-icon>
+      <p>No users match your filters</p>
+      <button type="button" class="btn-outline" (click)="clearAllFilters()">
+        Clear filters
+      </button>
+    </div>
 
-      <div *ngIf="filteredUsers.length === 0" class="empty-state search-empty">
-        <mat-icon>search_off</mat-icon>
-        <p>No users match “{{ searchQuery }}”</p>
-        <button type="button" class="clear-results-btn" (click)="clearSearch()">Clear search</button>
-      </div>
-
-      <div *ngIf="filteredUsers.length > 0" class="users-table-container">
+    <ng-container *ngIf="!loading && filteredUsers.length > 0">
+      <div class="table-wrap">
         <table class="users-table">
           <thead>
             <tr>
+              <th class="col-check">
+                <input
+                  type="checkbox"
+                  [checked]="allPageSelected"
+                  (change)="toggleSelectAll()"
+                  aria-label="Select all on page" />
+              </th>
               <th>User</th>
               <th>Business Name</th>
               <th>Email</th>
               <th>Mobile</th>
-              <th>City</th>
-              <th>State</th>
+              <th>Location</th>
               <th>Joined</th>
               <th>Status</th>
-              <th>Actions</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let user of pagedUsers">
-              <td class="user-avatar-cell">
-                <div class="user-avatar" [class.has-image]="user.image && !userImageFailed.has(user.id)">
-                  <img *ngIf="user.image && !userImageFailed.has(user.id)" [src]="user.image" [alt]="getFullName(user)" (error)="onUserImageError(user)" />
-                  <mat-icon *ngIf="!user.image || userImageFailed.has(user.id)" class="avatar-placeholder">person</mat-icon>
+            <tr
+              *ngFor="let user of pagedUsers"
+              class="user-row"
+              (click)="openUserDetails(user)"
+              role="link"
+              tabindex="0"
+              (keydown.enter)="openUserDetails(user)">
+              <td class="col-check" (click)="$event.stopPropagation()">
+                <input
+                  type="checkbox"
+                  [checked]="selectedIds.has(user.id)"
+                  (change)="toggleSelect(user, $event)"
+                  [attr.aria-label]="'Select ' + getFullName(user)" />
+              </td>
+              <td>
+                <div class="user-cell">
+                  <div
+                    class="avatar"
+                    [class.has-image]="user.image && !userImageFailed.has(user.id)"
+                    [style.background]="!(user.image && !userImageFailed.has(user.id)) ? getAvatarColor(user) : null">
+                    <img
+                      *ngIf="user.image && !userImageFailed.has(user.id)"
+                      [src]="user.image"
+                      [alt]="getFullName(user)"
+                      (error)="onUserImageError(user)" />
+                    <span *ngIf="!user.image || userImageFailed.has(user.id)">{{ getInitials(user) }}</span>
+                  </div>
+                  <div class="user-meta">
+                    <strong>{{ getFullName(user) }}</strong>
+                    <span>{{ getHandle(user) }}</span>
+                  </div>
                 </div>
               </td>
               <td>
-                <div class="business-info">
+                <div class="cell-stack">
                   <strong>{{ getBusinessName(user) }}</strong>
-                  <span *ngIf="user.brandName" class="brand-name">{{ user.brandName }}</span>
-                  <span *ngIf="getOutletCount(user) > 1" class="outlet-count">{{ getOutletCount(user) }} outlets</span>
+                  <span>{{ getBusinessSub(user) }}</span>
                 </div>
               </td>
-              <td>{{ user.email }}</td>
-              <td>{{ user.mobile }}</td>
-              <td>{{ user.city || 'N/A' }}</td>
-              <td>{{ user.state || 'N/A' }}</td>
-              <td class="joined-date">{{ formatJoinedDate(user.createdAt) }}</td>
+              <td>{{ user.email || '—' }}</td>
+              <td>{{ formatMobile(user.mobile) }}</td>
+              <td>{{ formatLocation(user) }}</td>
+              <td>{{ formatJoinedDate(user.createdAt) }}</td>
               <td>
-                <span [class]="'status-badge ' + getStatusClass(user.activate)">
-                  {{ getStatusText(user.activate) }}
+                <span class="status-badge" [ngClass]="getStatusClass(user)">
+                  {{ getStatusText(getAccountStatus(user)) }}
                 </span>
               </td>
-              <td>
-                <div class="actions-cell">
-                  <button
-                    class="action-btn view-btn"
-                    (click)="openUserDetails(user)"
-                    title="View dashboard">
-                    <mat-icon>visibility</mat-icon>
-                    <span>View</span>
-                  </button>
-                  <button
-                    class="action-btn"
-                    [class]="user.activate ? 'deactivate-btn' : 'activate-btn'"
-                    (click)="toggleUserStatus(user)">
-                    <span>{{ user.activate ? 'Deactivate' : 'Activate' }}</span>
-                  </button>
-                </div>
+              <td (click)="$event.stopPropagation()" class="col-actions">
+                <button
+                  type="button"
+                  class="status-switch"
+                  [class.on]="user.activate"
+                  role="switch"
+                  [attr.aria-checked]="user.activate"
+                  [attr.aria-label]="user.activate ? 'Deactivate user' : 'Activate user'"
+                  [title]="user.activate ? 'Active — click to deactivate' : 'Inactive — click to activate'"
+                  (click)="toggleUserStatus(user, $event)">
+                  <span class="status-switch-knob"></span>
+                </button>
+                <button
+                  type="button"
+                  class="icon-action"
+                  title="View details"
+                  (click)="openUserDetails(user)">
+                  <mat-icon>chevron_right</mat-icon>
+                </button>
               </td>
             </tr>
           </tbody>
         </table>
       </div>
 
-      <app-number-paginator
-        *ngIf="filteredUsers.length > 0"
-        [length]="filteredUsers.length"
-        [pageSize]="pageSize"
-        [pageIndex]="pageIndex"
-        (pageChange)="onPageChange($event)"
-      ></app-number-paginator>
-
-      <div *ngIf="filteredUsers.length > 0" class="users-summary">
-        <p>Total Users: <strong>{{ totalUsers }}</strong></p>
-        <p>Showing: <strong>{{ filteredCount }}</strong></p>
-        <p>Active: <strong>{{ activeUsers }}</strong></p>
-        <p>Pending: <strong>{{ pendingUsers }}</strong></p>
+      <div class="table-footer">
+        <p class="showing-label">
+          Showing {{ showingFrom }} to {{ showingTo }} of {{ filteredCount }} entries
+        </p>
+        <div class="footer-right">
+          <label class="rows-label">
+            Rows per page:
+            <select [(ngModel)]="pageSize" (ngModelChange)="onPageSizeChange()">
+              <option [ngValue]="10">10</option>
+              <option [ngValue]="25">25</option>
+              <option [ngValue]="50">50</option>
+            </select>
+          </label>
+          <app-number-paginator
+            [length]="filteredUsers.length"
+            [pageSize]="pageSize"
+            [pageIndex]="pageIndex"
+            (pageChange)="onPageChange($event)">
+          </app-number-paginator>
+        </div>
       </div>
     </ng-container>
   </div>
 </div>
-

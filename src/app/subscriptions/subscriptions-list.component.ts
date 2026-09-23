@@ -20,8 +20,8 @@ export interface SubscriptionPlan {
   subtitle: string;
   bulletPoints: string[];
   showImage: boolean;
-  duration: number; // Duration in months
-  tax?: number; // Tax percentage (e.g., 18 for 18%)
+  duration: number;
+  tax?: number;
   withPrinter?: boolean;
   platform?: SubscriptionPlanPlatform;
 }
@@ -31,28 +31,42 @@ interface ApiResponse {
   data: SubscriptionPlan[];
 }
 
+type PlanFilter = 'all' | 'desktop' | 'mobile' | 'hardware';
+
 @Component({
   selector: 'app-subscriptions-list',
   standalone: true,
   imports: [CommonModule, MatIconModule, MatButtonModule, MatDialogModule],
   templateUrl: './subscriptions-list.component.html',
-  styleUrls: ['./subscriptions-list.component.scss']
+  styleUrls: ['./subscriptions-list.component.scss'],
 })
 export class SubscriptionsListComponent implements OnInit, OnDestroy {
   subscriptionPlans: SubscriptionPlan[] = [];
+  filteredPlans: SubscriptionPlan[] = [];
   loading = false;
   error: string | null = null;
+  activeFilter: PlanFilter = 'all';
+  merchantSubscriptions = 0;
+
+  readonly filterTabs: { key: PlanFilter; label: string }[] = [
+    { key: 'all', label: 'All Plans' },
+    { key: 'desktop', label: 'Desktop Plans' },
+    { key: 'mobile', label: 'Mobile Plans' },
+    { key: 'hardware', label: 'Hardware Bundled' },
+  ];
+
   private apiUrl = API_ENDPOINTS.SUBSCRIPTION_PLANS;
   private destroy$ = new Subject<void>();
 
   constructor(
     private http: HttpClient,
     private dialog: MatDialog,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit(): void {
     this.fetchSubscriptionPlans();
+    this.fetchMerchantCount();
   }
 
   ngOnDestroy(): void {
@@ -60,67 +74,119 @@ export class SubscriptionsListComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
+  get totalPlans(): number {
+    return this.subscriptionPlans.length;
+  }
+
+  get desktopCount(): number {
+    return this.subscriptionPlans.filter((p) => (p.platform || 'mobile') === 'desktop').length;
+  }
+
+  get mobileCount(): number {
+    return this.subscriptionPlans.filter((p) => (p.platform || 'mobile') === 'mobile').length;
+  }
+
+  get hardwareCount(): number {
+    return this.subscriptionPlans.filter((p) => !!p.withPrinter).length;
+  }
+
+  get mostPopularTitle(): string {
+    const popular = this.getPopularPlan();
+    return popular?.title || '—';
+  }
+
+  getFilterCount(key: PlanFilter): number {
+    if (key === 'all') return this.totalPlans;
+    if (key === 'desktop') return this.desktopCount;
+    if (key === 'mobile') return this.mobileCount;
+    return this.hardwareCount;
+  }
+
+  setFilter(key: PlanFilter): void {
+    this.activeFilter = key;
+    this.applyFilter();
+    this.cdr.detectChanges();
+  }
+
+  isPopular(plan: SubscriptionPlan): boolean {
+    const popular = this.getPopularPlan();
+    return !!popular && popular.id === plan.id;
+  }
+
+  getSavings(plan: SubscriptionPlan): number {
+    return Math.max(0, Number(plan.price || 0) - Number(plan.discountedPrice || 0));
+  }
+
   fetchSubscriptionPlans(): void {
     this.loading = true;
     this.error = null;
-    this.cdr.detectChanges(); // Force change detection
+    this.cdr.detectChanges();
 
-    // NOTE: When the backend (or proxy) returns HTML/plain text (e.g., 404/502 page),
-    // Angular's default JSON parsing throws: "Http failure during parsing".
-    // We fetch as text and parse JSON manually so we can show the real response.
     this.http.get(this.apiUrl, { responseType: 'text', observe: 'response' }).subscribe({
       next: (res) => {
         const bodyText = (res.body ?? '').toString();
-        const contentType = res.headers.get('content-type') || '';
-
         let response: unknown = null;
         if (bodyText.trim().length > 0) {
           try {
             response = JSON.parse(bodyText);
           } catch {
-            console.warn('Subscription plans API returned non-JSON', {
-              status: res.status,
-              contentType,
-              bodyPreview: bodyText.slice(0, 300)
-            });
             this.subscriptionPlans = [];
+            this.filteredPlans = [];
             this.loading = false;
-            this.error =
-              `API returned non-JSON (status ${res.status}). ` +
-              (contentType ? `Content-Type: ${contentType}. ` : '') +
-              `Response: ${bodyText.slice(0, 300)}`;
+            this.error = `API returned non-JSON (status ${res.status}).`;
             this.cdr.detectChanges();
             return;
           }
         }
 
-        console.log('Subscription plans API response:', response);
-
-        // Handle different response formats
         if (response && typeof response === 'object' && (response as ApiResponse).status === 'success' && (response as ApiResponse).data) {
           this.subscriptionPlans = Array.isArray((response as ApiResponse).data) ? (response as ApiResponse).data : [];
         } else if (Array.isArray(response)) {
-          // If response is directly an array
           this.subscriptionPlans = response as SubscriptionPlan[];
-        } else if (response && typeof response === 'object' && (response as any).data) {
-          // If response has data but different structure
-          this.subscriptionPlans = Array.isArray((response as any).data) ? (response as any).data : [];
+        } else if (response && typeof response === 'object' && (response as { data?: unknown }).data) {
+          const data = (response as { data: unknown }).data;
+          this.subscriptionPlans = Array.isArray(data) ? data : [];
         } else {
-          console.warn('Unexpected response format:', response);
           this.subscriptionPlans = [];
         }
 
+        this.applyFilter();
         this.loading = false;
-        this.cdr.detectChanges(); // Force change detection after updating
+        this.cdr.detectChanges();
       },
       error: (error) => {
-        console.error('Error fetching subscription plans:', error);
-        this.error = error.error?.message || error.message || 'Failed to fetch subscription plans. Please try again later.';
+        this.error =
+          error.error?.message || error.message || 'Failed to fetch subscription plans. Please try again later.';
         this.subscriptionPlans = [];
+        this.filteredPlans = [];
         this.loading = false;
-        this.cdr.detectChanges(); // Force change detection on error
-      }
+        this.cdr.detectChanges();
+      },
     });
+  }
+
+  exportPlans(): void {
+    const rows = [
+      ['Title', 'Platform', 'With Printer', 'Price', 'Discounted', 'Savings', 'Subtitle', 'Created'],
+      ...this.filteredPlans.map((p) => [
+        p.title,
+        this.getPlatformLabel(p),
+        p.withPrinter ? 'Yes' : 'No',
+        String(p.price ?? 0),
+        String(p.discountedPrice ?? 0),
+        String(this.getSavings(p)),
+        p.subtitle || '',
+        this.formatDate(p.createdAt),
+      ]),
+    ];
+    const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `subscription-plans-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   openCreateDialog(): void {
@@ -130,13 +196,11 @@ export class SubscriptionsListComponent implements OnInit, OnDestroy {
       maxHeight: '90vh',
       disableClose: false,
       panelClass: 'subscription-dialog',
-      data: null // No data means create mode
+      data: null,
     });
 
-    dialogRef.afterClosed().subscribe(result => {
-      if (result === 'success') {
-        this.fetchSubscriptionPlans();
-      }
+    dialogRef.afterClosed().subscribe((result) => {
+      if (result === 'success') this.fetchSubscriptionPlans();
     });
   }
 
@@ -147,13 +211,11 @@ export class SubscriptionsListComponent implements OnInit, OnDestroy {
       maxHeight: '90vh',
       disableClose: false,
       panelClass: 'subscription-dialog',
-      data: plan // Pass the plan data for edit mode
+      data: plan,
     });
 
-    dialogRef.afterClosed().subscribe(result => {
-      if (result === 'success') {
-        this.fetchSubscriptionPlans();
-      }
+    dialogRef.afterClosed().subscribe((result) => {
+      if (result === 'success') this.fetchSubscriptionPlans();
     });
   }
 
@@ -162,17 +224,55 @@ export class SubscriptionsListComponent implements OnInit, OnDestroy {
   }
 
   formatPrice(price: number): string {
-    return `₹${price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    return `₹${Number(price || 0).toLocaleString('en-IN', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
   }
 
   formatDate(dateString: string): string {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-IN', { 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric' 
+    return date.toLocaleDateString('en-IN', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
     });
   }
+
+  private applyFilter(): void {
+    let list = [...this.subscriptionPlans];
+    if (this.activeFilter === 'desktop') {
+      list = list.filter((p) => (p.platform || 'mobile') === 'desktop');
+    } else if (this.activeFilter === 'mobile') {
+      list = list.filter((p) => (p.platform || 'mobile') === 'mobile');
+    } else if (this.activeFilter === 'hardware') {
+      list = list.filter((p) => !!p.withPrinter);
+    }
+    this.filteredPlans = list;
+  }
+
+  /** Prefer hardware bundle with highest savings as "popular". */
+  private getPopularPlan(): SubscriptionPlan | null {
+    const hardware = this.subscriptionPlans.filter((p) => !!p.withPrinter);
+    const pool = hardware.length ? hardware : this.subscriptionPlans;
+    if (!pool.length) return null;
+    return [...pool].sort((a, b) => this.getSavings(b) - this.getSavings(a))[0] ?? null;
+  }
+
+  private fetchMerchantCount(): void {
+    this.http
+      .get<{ activeSubscriptions?: number; data?: { activeSubscriptions?: number } }>(
+        API_ENDPOINTS.DASHBOARD_OVERVIEW,
+      )
+      .subscribe({
+        next: (res) => {
+          const overview = res?.data ?? res;
+          this.merchantSubscriptions = overview?.activeSubscriptions ?? 0;
+          this.cdr.detectChanges();
+        },
+        error: () => {
+          this.merchantSubscriptions = 0;
+        },
+      });
+  }
 }
-
-

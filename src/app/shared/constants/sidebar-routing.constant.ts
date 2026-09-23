@@ -4,50 +4,49 @@ import { NavItemLinkType } from '../types/nav-item-link.type';
 export const SIDEBAR_ROUTING: NavItemLinkType[] = [
   {
     label: 'Dashboard',
-    icon: 'dashboard',
+    icon: 'grid_view',
     path: PAGE_URL.HOME,
     accessName: 'DASHBOARD',
   },
-
   {
     label: 'Sub Admins',
-    icon: 'admin_panel_settings',
+    icon: 'verified_user',
     path: PAGE_URL.SUB_ADMINS,
     accessName: 'SUB_ADMINS',
   },
   {
     label: 'Users',
-    icon: 'people',
+    icon: 'person',
     path: PAGE_URL.USERS,
     accessName: 'USERS',
   },
   {
     label: 'Subscriptions',
-    icon: 'subscriptions',
+    icon: 'layers',
     path: PAGE_URL.SUBSCRIPTIONS,
     accessName: 'SUBSCRIPTIONS',
   },
   {
     label: 'Services',
-    icon: 'miscellaneous_services',
+    icon: 'settings',
     path: PAGE_URL.SERVICES,
     accessName: 'SERVICES',
   },
   {
     label: 'Payments',
-    icon: 'payment',
+    icon: 'account_balance_wallet',
     path: PAGE_URL.PAYMENTS,
     accessName: 'PAYMENTS',
   },
   {
     label: 'Wallet Cards',
-    icon: 'account_balance_wallet',
+    icon: 'credit_card',
     path: PAGE_URL.WALLET_CARDS,
     accessName: 'WALLET_CARDS',
   },
   {
     label: 'Wallet Coupons',
-    icon: 'confirmation_number',
+    icon: 'local_offer',
     path: PAGE_URL.WALLET_COUPONS,
     accessName: 'WALLET_COUPONS',
   },
@@ -61,13 +60,13 @@ export const SIDEBAR_ROUTING: NavItemLinkType[] = [
 
 export const SIDEBAR_ROUTING_BOTTOM: NavItemLinkType[] = [
   {
-    label: 'Profile',
-    icon: 'person',
+    label: 'Admin Profile',
+    icon: 'person_outline',
     path: PAGE_URL.PROFILE,
   },
   {
     label: 'Sign Out',
     icon: 'logout',
-    path: PAGE_URL.SIGN_OUT
+    path: PAGE_URL.SIGN_OUT,
   },
 ];

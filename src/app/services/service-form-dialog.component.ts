@@ -40,7 +40,7 @@ export class ServiceFormDialogComponent implements OnInit {
     private dialogRef: MatDialogRef<ServiceFormDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: ServiceItem | null
   ) {
-    this.isEditMode = !!data;
+    this.isEditMode = !!(data && data.id);
     this.serviceForm = this.formBuilder.group({
       name: ['', [Validators.required, Validators.maxLength(200)]],
       active: [true],

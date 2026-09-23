@@ -93,7 +93,13 @@ export class SubAdminsListComponent implements OnInit, OnDestroy {
       },
       error: (error) => {
         console.error('Error fetching sub admins:', error);
-        this.error = error.error?.message || error.message || 'Failed to fetch sub admins. Please try again later.';
+        if (error.status === 401) {
+          this.error = 'Session expired or invalid. Please log out and log in again as a full admin.';
+        } else if (error.status === 403) {
+          this.error = 'Only full admins can manage sub-admins. Sub-admin accounts cannot access this page.';
+        } else {
+          this.error = error.error?.message || error.message || 'Failed to fetch sub admins. Please try again later.';
+        }
         this.subAdmins = [];
         this.loading = false;
         this.cdr.detectChanges();

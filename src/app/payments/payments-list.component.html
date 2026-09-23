@@ -1,132 +1,211 @@
-<div class="payments-list-container">
-  <div class="payments-header">
-    <h1 class="page-title">Payments</h1>
-    <div class="payments-summary" *ngIf="!loading && !error && payments.length > 0">
-      <p class="total-count">
-        {{ filteredPayments.length }} payment{{ filteredPayments.length !== 1 ? 's' : '' }}
-        <span *ngIf="hasActiveFilters"> of {{ payments.length }}</span>
-      </p>
-      <p class="total-amount">Total amount: {{ formatAmount(totalAmount, 'INR') }}</p>
-      <p class="total-amount total-completed">Completed: {{ completedCount }} payment{{ completedCount !== 1 ? 's' : '' }}, {{ formatAmount(totalCompletedAmount, 'INR') }}</p>
-      <p class="total-amount total-wallet" *ngIf="walletCount > 0">Wallet: {{ walletCount }} payment{{ walletCount !== 1 ? 's' : '' }}, {{ formatAmount(totalWalletAmount, 'INR') }}</p>
-      <p class="total-amount total-failed">Failed: {{ failedCount }} payment{{ failedCount !== 1 ? 's' : '' }}, {{ formatAmount(totalFailedAmount, 'INR') }}</p>
+<div class="payments-page">
+  <header class="page-header">
+    <div>
+      <h1 class="page-title">Payments & Transactions</h1>
+      <p class="page-subtitle">Track incoming subscription payments, wallet top-ups, and settlement statuses.</p>
+    </div>
+    <div class="header-actions">
+      <button type="button" class="btn-outline" (click)="exportCsv()" [disabled]="!filteredPayments.length">
+        <mat-icon>download</mat-icon>
+        Export CSV
+      </button>
+      <button type="button" class="btn-primary" disabled title="Coming soon">
+        <mat-icon>add</mat-icon>
+        Record Payment
+      </button>
+    </div>
+  </header>
+
+  <div *ngIf="error && !loading" class="error-banner">
+    <mat-icon>error_outline</mat-icon>
+    <p>{{ error }}</p>
+    <button type="button" class="btn-outline" (click)="fetchPayments()">Retry</button>
+  </div>
+
+  <div class="metrics-grid">
+    <div class="metric-card">
+      <div class="metric-top">
+        <span class="metric-label">Total Volume</span>
+        <div class="metric-icon purple"><mat-icon>currency_rupee</mat-icon></div>
+      </div>
+      <span class="metric-value">{{ formatAmount(totalVolume) }}</span>
+      <span class="metric-meta success">{{ payments.length }} payments</span>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-top">
+        <span class="metric-label">Completed</span>
+        <div class="metric-icon green"><mat-icon>check_circle</mat-icon></div>
+      </div>
+      <span class="metric-value">{{ formatAmount(completedAmount) }}</span>
+      <span class="metric-meta success">{{ completedRate }}% Rate · {{ verifiedCount }} verified</span>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-top">
+        <span class="metric-label">Wallet Top-ups</span>
+        <div class="metric-icon blue"><mat-icon>credit_card</mat-icon></div>
+      </div>
+      <span class="metric-value">{{ formatAmount(walletAmount) }}</span>
+      <span class="metric-meta">{{ walletCountAll }} Topups · avg {{ formatAmountShort(walletAvg) }}</span>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-top">
+        <span class="metric-label">Subscriptions</span>
+        <div class="metric-icon violet"><mat-icon>lock</mat-icon></div>
+      </div>
+      <span class="metric-value">{{ formatAmount(subscriptionAmount) }}</span>
+      <span class="metric-meta">{{ subscriptionCountAll }} Plans</span>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-top">
+        <span class="metric-label">Failed / Disputed</span>
+        <div class="metric-icon gray"><mat-icon>block</mat-icon></div>
+      </div>
+      <span class="metric-value">{{ formatAmount(failedAmount) }}</span>
+      <span class="metric-meta danger">{{ failedCountAll }} Failed</span>
     </div>
   </div>
 
-  <div class="filters" *ngIf="!loading && !error && payments.length > 0">
-    <div class="filter-group">
-      <span class="filter-label">Type</span>
-      <div class="filter-tabs">
+  <div class="filters-panel">
+    <div class="filter-row">
+      <div class="chip-group">
         <button
           *ngFor="let tab of typeTabs"
           type="button"
-          class="filter-tab"
+          class="chip"
           [class.active]="typeFilter === tab.key"
-          (click)="setTypeFilter(tab.key)"
-        >
-          <mat-icon>{{ tab.icon }}</mat-icon>
-          <span>{{ tab.label }}</span>
-          <span class="filter-count">{{ getTypeCount(tab.key) }}</span>
+          (click)="setTypeFilter(tab.key)">
+          {{ tab.label }} ({{ getTypeCount(tab.key) }})
         </button>
       </div>
     </div>
-    <div class="filter-group">
-      <span class="filter-label">Status</span>
-      <div class="filter-tabs">
+
+    <div class="filter-row">
+      <div class="chip-group status-chips">
         <button
           *ngFor="let tab of statusTabs"
           type="button"
-          class="filter-tab"
+          class="chip status"
           [class.active]="statusFilter === tab.key"
-          (click)="setStatusFilter(tab.key)"
-        >
-          <mat-icon>{{ tab.icon }}</mat-icon>
-          <span>{{ tab.label }}</span>
-          <span class="filter-count">{{ getStatusCount(tab.key) }}</span>
+          [class.completed]="tab.key === 'completed'"
+          [class.pending]="tab.key === 'pending'"
+          [class.failed]="tab.key === 'failed'"
+          (click)="setStatusFilter(tab.key)">
+          <span class="status-dot" *ngIf="tab.key !== 'all'"></span>
+          {{ tab.label }} ({{ getStatusCount(tab.key) }})
         </button>
       </div>
     </div>
+
+    <div class="filter-row secondary">
+      <div class="search-box">
+        <mat-icon>search</mat-icon>
+        <input
+          type="text"
+          placeholder="Search by ID, User email..."
+          [(ngModel)]="searchQuery"
+          (ngModelChange)="onSearchChange()" />
+      </div>
+
+      <select [(ngModel)]="methodFilter" (ngModelChange)="onSecondaryFilterChange()" aria-label="Payment method">
+        <option value="">All Payment Methods</option>
+        <option *ngFor="let m of uniqueMethods" [value]="m">{{ m }}</option>
+      </select>
+
+      <select [(ngModel)]="verifiedFilter" (ngModelChange)="onSecondaryFilterChange()" aria-label="Verified filter">
+        <option value="all">Verified: All</option>
+        <option value="yes">Verified: Yes</option>
+        <option value="no">Verified: No</option>
+      </select>
+
+      <button type="button" class="icon-btn" (click)="fetchPayments()" title="Refresh" aria-label="Refresh">
+        <mat-icon>refresh</mat-icon>
+      </button>
+    </div>
   </div>
 
-  <!-- Loading State -->
-  <div *ngIf="loading" class="loading-container">
-    <div class="loading-spinner"></div>
+  <div *ngIf="loading" class="loading-state">
+    <div class="spinner"></div>
     <p>Loading payments...</p>
   </div>
 
-  <!-- Error State -->
-  <div *ngIf="error && !loading" class="error-container">
-    <mat-icon class="error-icon">error_outline</mat-icon>
-    <p class="error-message">{{ error }}</p>
-    <button class="retry-btn" (click)="fetchPayments()">Retry</button>
+  <div *ngIf="!loading && !error && payments.length === 0" class="empty-state">
+    <mat-icon>payment</mat-icon>
+    <p>No payments found</p>
   </div>
 
-  <!-- Payments List -->
-  <div *ngIf="!loading && !error" class="payments-content">
-    <div *ngIf="payments.length === 0" class="empty-state">
-      <mat-icon>payment</mat-icon>
-      <p>No payments found</p>
-    </div>
+  <div *ngIf="!loading && payments.length > 0 && filteredPayments.length === 0" class="empty-state">
+    <mat-icon>filter_list_off</mat-icon>
+    <p>No payments match the selected filters</p>
+    <button type="button" class="btn-outline" (click)="clearFilters()">Show all payments</button>
+  </div>
 
-    <div *ngIf="payments.length > 0 && filteredPayments.length === 0" class="empty-state empty-state--filter">
-      <mat-icon>filter_list_off</mat-icon>
-      <p>No payments match the selected filters</p>
-      <button type="button" class="clear-filter-btn" (click)="clearFilters()">Show all payments</button>
-    </div>
-
-    <div *ngIf="filteredPayments.length > 0" class="payments-table-wrapper">
-      <table class="payments-table" role="grid">
+  <div class="table-panel" *ngIf="!loading && filteredPayments.length > 0">
+    <div class="table-wrap">
+      <table>
         <thead>
           <tr>
-            <th scope="col">Transaction ID</th>
-            <th scope="col">Type</th>
-            <th scope="col">User</th>
-            <th scope="col">Amount</th>
-            <th scope="col">Method</th>
-            <th scope="col">Status</th>
-            <th scope="col">Verified</th>
-            <th scope="col">Date</th>
+            <th class="col-check">
+              <input type="checkbox" [checked]="allPageSelected" (change)="toggleSelectAll()" aria-label="Select all" />
+            </th>
+            <th>Transaction ID</th>
+            <th>Type</th>
+            <th>User & Business Name</th>
+            <th>Amount</th>
+            <th>Method</th>
+            <th>Status</th>
+            <th>Verified</th>
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let payment of pagedPayments" class="payment-row">
-            <td class="transaction-id">{{ payment.transactionId }}</td>
+          <tr *ngFor="let payment of pagedPayments">
+            <td class="col-check" (click)="$event.stopPropagation()">
+              <input
+                type="checkbox"
+                [checked]="selectedIds.has(payment.id)"
+                (change)="toggleSelect(payment, $event)"
+                [attr.aria-label]="'Select ' + payment.transactionId" />
+            </td>
+            <td class="txn-id">{{ payment.transactionId || payment.id }}</td>
             <td>
-              <span class="type-badge" [ngClass]="getPaymentTypeClass(payment)">
+              <span class="type-pill" [ngClass]="getPaymentTypeClass(payment)">
+                <span class="dot"></span>
                 {{ getPaymentTypeLabel(payment) }}
               </span>
-              <span class="outlet-hint" *ngIf="payment.metadata?.outletName">
-                {{ payment.metadata?.outletName }}
-              </span>
             </td>
-            <td class="user-cell">
-              <div class="user-cell-inner">
-                <span class="user-email" *ngIf="payment.user">{{ payment.user.email }}</span>
-                <span class="user-brand" *ngIf="payment.user?.brandName">{{ payment.user?.brandName }}</span>
-                <span *ngIf="!payment.user">—</span>
+            <td>
+              <div class="user-cell">
+                <strong>{{ payment.user?.brandName || '—' }}</strong>
+                <span>{{ payment.user?.email || '—' }}</span>
               </div>
             </td>
-            <td class="amount-cell">{{ formatAmount(payment.amount, payment.currency) }}</td>
-            <td><span class="method-badge">{{ getMethodLabel(payment) }}</span></td>
+            <td class="amount">{{ formatAmountShort(payment.amount) }}</td>
+            <td class="method">{{ getMethodLabel(payment) }}</td>
             <td>
-              <span class="status-badge" [ngClass]="getStatusClass(payment.status)">{{ payment.status }}</span>
-            </td>
-            <td>
-              <span class="verified-badge" [class.verified]="payment.verified">
-                {{ payment.verified ? 'Yes' : 'No' }}
+              <span class="status-pill" [ngClass]="getStatusClass(payment.status)">
+                <mat-icon *ngIf="getStatusClass(payment.status) === 'status-completed'">check</mat-icon>
+                {{ payment.status }}
               </span>
             </td>
-            <td class="date-cell">{{ formatDate(payment.createdAt) }}</td>
+            <td>
+              <span class="verified" [class.yes]="payment.verified">{{ payment.verified ? 'Yes' : 'No' }}</span>
+            </td>
           </tr>
         </tbody>
       </table>
+    </div>
 
+    <div class="table-footer">
+      <p>Showing {{ showingFrom }} to {{ showingTo }} of {{ filteredPayments.length }} entries</p>
       <app-number-paginator
         [length]="filteredPayments.length"
         [pageSize]="pageSize"
         [pageIndex]="pageIndex"
-        (pageChange)="onPageChange($event)"
-      ></app-number-paginator>
+        (pageChange)="onPageChange($event)">
+      </app-number-paginator>
     </div>
   </div>
 </div>

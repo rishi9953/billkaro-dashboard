@@ -40,7 +40,7 @@ export class WalletCardFormDialogComponent implements OnInit {
     private dialogRef: MatDialogRef<WalletCardFormDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: WalletCardItem | null
   ) {
-    this.isEditMode = !!data;
+    this.isEditMode = !!(data && data.id);
     this.cardForm = this.formBuilder.group({
       title: ['', [Validators.required, Validators.maxLength(120)]],
       amount: [null, [Validators.required, Validators.min(1)]],

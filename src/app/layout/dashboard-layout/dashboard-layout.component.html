@@ -36,7 +36,8 @@
         <ul class="pages-sidebar-items">
           <ng-container *ngFor="let item of pageDashboardLinkBottom">
             <li class="pages-sidebar-item" (click)="item.label === 'Sign Out' ? openSignOutModal() : null"
-              [routerLink]="item.label !== 'Sign Out' ? item.path : null" routerLinkActive="active">
+              [routerLink]="item.label !== 'Sign Out' ? item.path : null" routerLinkActive="active"
+              [class.signout-item]="item.label === 'Sign Out'">
               <mat-icon>{{ item?.icon }}</mat-icon>
               <span class="sidebar-label">{{ item.label }}</span>
             </li>
@@ -50,13 +51,43 @@
       <button class="mobile-menu-btn" (click)="toggleSidebar()" aria-label="Toggle menu" type="button">
         <mat-icon aria-hidden="true">menu</mat-icon>
       </button>
-      <div class="nav-center">
-        <h2 class="page-title-nav">{{ currentPageTitle }}</h2>
+
+      <div class="nav-search">
+        <mat-icon class="nav-search-icon">search</mat-icon>
+        <input
+          type="text"
+          class="nav-search-input"
+          placeholder="Search metrics, outlets, transactions, or users..."
+          [(ngModel)]="globalSearch"
+          (keydown.enter)="onGlobalSearch()"
+          aria-label="Global search" />
       </div>
+
       <div class="nav-left">
-        <button type="button" class="theme-toggle-btn" (click)="toggleTheme()" [attr.aria-label]="themeService.isDark ? 'Switch to light mode' : 'Switch to dark mode'" [title]="themeService.isDark ? 'Light mode' : 'Dark mode'">
+        <div class="nav-period">
+          <mat-icon>calendar_today</mat-icon>
+          <select [(ngModel)]="selectedPeriod" aria-label="Period filter">
+            <option value="1m">Last month</option>
+            <option value="3m">Last 3 months</option>
+            <option value="6m">Last 6 months</option>
+            <option value="1y">Last year</option>
+          </select>
+        </div>
+
+        <button type="button" class="nav-icon-btn" aria-label="Notifications" title="Notifications">
+          <mat-icon>notifications_none</mat-icon>
+          <span class="nav-badge" *ngIf="notificationCount > 0">{{ notificationCount }}</span>
+        </button>
+
+        <button
+          type="button"
+          class="nav-icon-btn"
+          (click)="toggleTheme()"
+          [attr.aria-label]="themeService.isDark ? 'Switch to light mode' : 'Switch to dark mode'"
+          [title]="themeService.isDark ? 'Light mode' : 'Dark mode'">
           <mat-icon>{{ themeService.isDark ? 'light_mode' : 'dark_mode' }}</mat-icon>
         </button>
+
         <div class="admin-details">
           <div class="admin-image">
             <span>{{ name.charAt(0).toUpperCase() }}</span>

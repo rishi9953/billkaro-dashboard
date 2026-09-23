@@ -1,5 +1,6 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Router, RouterModule, NavigationEnd } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { filter } from 'rxjs/operators';
@@ -8,11 +9,12 @@ import { SIDEBAR_ROUTING, SIDEBAR_ROUTING_BOTTOM } from '../../shared/constants/
 import { NavItemLinkType } from '../../shared/types/nav-item-link.type';
 import { AdminAuthService } from '../../pages/admin-auth/admin-auth.service';
 import { ThemeService } from '../../core/theme.service';
+import { PAGE_URL } from '../../utilities/constant/page-url.constant';
 
 @Component({
   selector: 'app-dashboard-layout',
   standalone: true,
-  imports: [CommonModule, RouterModule, MatIconModule],
+  imports: [CommonModule, FormsModule, RouterModule, MatIconModule],
   templateUrl: './dashboard-layout.component.html',
   styleUrls: ['./dashboard-layout.component.scss']
 })
@@ -26,6 +28,9 @@ export class DashboardLayoutComponent implements OnInit, OnDestroy {
   name = 'Guest';
   email = 'guest@example.com';
   currentPageTitle = 'Dashboard';
+  globalSearch = '';
+  selectedPeriod = '6m';
+  notificationCount = 3;
   private destroy$ = new Subject<void>();
 
   constructor(
@@ -40,36 +45,22 @@ export class DashboardLayoutComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     const admin = this.adminAuth.getCurrentAdmin();
     const isSubAdmin = this.adminAuth.isSubAdmin();
-    
-    // Debug logging (remove in production)
-    console.log('[DashboardLayout] Current admin:', admin);
-    console.log('[DashboardLayout] Is sub_admin:', isSubAdmin);
-    console.log('[DashboardLayout] Admin role:', admin?.role);
-    
+
     this.pageDashboardLink = isSubAdmin
       ? SIDEBAR_ROUTING.filter(
-          (item) => {
-            const shouldHide = item.accessName && DashboardLayoutComponent.SUB_ADMIN_HIDDEN_ACCESS.has(item.accessName);
-            if (shouldHide) {
-              console.log('[DashboardLayout] Hiding tab for sub_admin:', item.label, item.accessName);
-            }
-            return !shouldHide;
-          }
+          (item) => !(item.accessName && DashboardLayoutComponent.SUB_ADMIN_HIDDEN_ACCESS.has(item.accessName)),
         )
       : SIDEBAR_ROUTING;
     this.pageDashboardLinkBottom = SIDEBAR_ROUTING_BOTTOM;
-    
-    console.log('[DashboardLayout] Visible tabs:', this.pageDashboardLink.map(t => t.label));
     this.sidebarCollapsed = localStorage.getItem(DashboardLayoutComponent.SIDEBAR_COLLAPSED_KEY) === 'true';
-    
+
     if (admin) {
       this.name = admin.name;
       this.email = admin.email;
     }
-    
+
     this.updateCurrentPageTitle();
 
-    // Listen to route changes to update page title
     this.router.events
       .pipe(
         filter(event => event instanceof NavigationEnd),
@@ -87,8 +78,6 @@ export class DashboardLayoutComponent implements OnInit, OnDestroy {
 
   updateCurrentPageTitle(): void {
     const currentUrl = this.router.url;
-
-    // Check all routes to find matching page title
     const allRoutes = [...this.pageDashboardLink, ...this.pageDashboardLinkBottom];
     const matchedRoute = allRoutes.find(route => {
       if (route.path) {
@@ -99,25 +88,28 @@ export class DashboardLayoutComponent implements OnInit, OnDestroy {
 
     if (matchedRoute) {
       this.currentPageTitle = matchedRoute.label;
+    } else if (currentUrl.includes('/users')) {
+      this.currentPageTitle = 'Users';
+    } else if (currentUrl.includes('/orders')) {
+      this.currentPageTitle = 'Printer Orders';
     } else {
-      // Default titles based on URL patterns
-      if (currentUrl.includes('/dashboard/home') || currentUrl === '/dashboard') {
-        this.currentPageTitle = 'Dashboard';
-      } else if (currentUrl.includes('/users')) {
-        this.currentPageTitle = 'Users';
-      } else if (currentUrl.includes('/subscriptions')) {
-        this.currentPageTitle = 'Subscriptions';
-      } else if (currentUrl.includes('/services')) {
-        this.currentPageTitle = 'Services';
-      } else if (currentUrl.includes('/payments')) {
-        this.currentPageTitle = 'Payments'
-      } else if (currentUrl.includes('/orders')) {
-        this.currentPageTitle = 'Printer Orders';
-      } else if (currentUrl.includes('/profile')) {
-        this.currentPageTitle = 'Profile';
-      } else {
-        this.currentPageTitle = 'Dashboard';
-      }
+      this.currentPageTitle = 'Dashboard';
+    }
+  }
+
+  onGlobalSearch(): void {
+    const q = this.globalSearch.trim().toLowerCase();
+    if (!q) return;
+    if (q.includes('user') || q.includes('outlet')) {
+      this.router.navigateByUrl(PAGE_URL.USERS);
+    } else if (q.includes('payment') || q.includes('transaction') || q.includes('revenue')) {
+      this.router.navigateByUrl(PAGE_URL.PAYMENTS);
+    } else if (q.includes('order') || q.includes('printer')) {
+      this.router.navigateByUrl(PAGE_URL.ORDERS);
+    } else if (q.includes('subscription') || q.includes('plan')) {
+      this.router.navigateByUrl(PAGE_URL.SUBSCRIPTIONS);
+    } else {
+      this.router.navigateByUrl(PAGE_URL.USERS);
     }
   }
 
@@ -137,20 +129,13 @@ export class DashboardLayoutComponent implements OnInit, OnDestroy {
   navigateToRoute(path: string): void {
     const targetPath = path.startsWith('/') ? path : '/' + path;
     const currentUrl = this.router.url;
-
-    // Close sidebar on mobile after navigation
     this.closeSidebar();
 
-    // If already on the same route, force reload by navigating away and back
     if (currentUrl === targetPath || currentUrl === targetPath + '/') {
-      // Navigate to root temporarily to force component destruction
       this.router.navigateByUrl('/', { skipLocationChange: true }).then(() => {
-        setTimeout(() => {
-          this.router.navigate([targetPath]);
-        }, 0);
+        setTimeout(() => this.router.navigate([targetPath]), 0);
       });
     } else {
-      // Normal navigation
       this.router.navigate([targetPath]);
     }
   }

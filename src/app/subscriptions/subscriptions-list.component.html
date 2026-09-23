@@ -1,82 +1,146 @@
-<div class="subscriptions-list-container">
-  <div class="subscriptions-header">
-    <h1 class="page-title">Subscription Plans</h1>
+<div class="subscriptions-page">
+  <header class="page-header">
+    <div>
+      <h1 class="page-title">Subscription Plans</h1>
+      <p class="page-subtitle">Manage pricing tiers, hardware bundles, and POS feature access for merchant outlets.</p>
+    </div>
+    <div class="header-actions">
+      <button type="button" class="btn-outline" (click)="exportPlans()" [disabled]="!filteredPlans.length">
+        <mat-icon>file_upload</mat-icon>
+        Export Plans
+      </button>
+      <button type="button" class="btn-primary" (click)="openCreateDialog()">
+        <mat-icon>add</mat-icon>
+        Create New Plan
+      </button>
+    </div>
+  </header>
+
+  <div *ngIf="error && !loading" class="error-banner">
+    <mat-icon>error_outline</mat-icon>
+    <p>{{ error }}</p>
+    <button type="button" class="btn-outline" (click)="fetchSubscriptionPlans()">Retry</button>
   </div>
 
-  <!-- Loading State -->
-  <div *ngIf="loading" class="loading-container">
-    <div class="loading-spinner"></div>
+  <div class="metrics-grid">
+    <div class="metric-card">
+      <div class="metric-icon purple"><mat-icon>style</mat-icon></div>
+      <div>
+        <span class="metric-label">Total Active Plans</span>
+        <span class="metric-value">{{ totalPlans }} Tiers</span>
+      </div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-icon green"><mat-icon>sync</mat-icon></div>
+      <div>
+        <span class="metric-label">Merchant Subscriptions</span>
+        <span class="metric-value">{{ merchantSubscriptions }} Active</span>
+      </div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-icon orange"><mat-icon>inventory_2</mat-icon></div>
+      <div>
+        <span class="metric-label">Hardware Bundled</span>
+        <span class="metric-value">{{ hardwareCount }} Bundles</span>
+      </div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-icon violet"><mat-icon>bolt</mat-icon></div>
+      <div>
+        <span class="metric-label">Most Popular Tier</span>
+        <span class="metric-value compact">{{ mostPopularTitle }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <div class="filter-tabs">
+      <button
+        *ngFor="let tab of filterTabs"
+        type="button"
+        class="filter-tab"
+        [class.active]="activeFilter === tab.key"
+        (click)="setFilter(tab.key)">
+        {{ tab.label }} ({{ getFilterCount(tab.key) }})
+      </button>
+    </div>
+    <span class="gst-note">Prices exclude GST (18%)</span>
+  </div>
+
+  <div *ngIf="loading" class="loading-state">
+    <div class="spinner"></div>
     <p>Loading subscription plans...</p>
   </div>
 
-  <!-- Error State -->
-  <div *ngIf="error && !loading" class="error-container">
-    <mat-icon class="error-icon">error_outline</mat-icon>
-    <p class="error-message">{{ error }}</p>
-    <button class="retry-btn" (click)="fetchSubscriptionPlans()">Retry</button>
+  <div *ngIf="!loading && !error && filteredPlans.length === 0" class="empty-state">
+    <mat-icon>subscriptions</mat-icon>
+    <p>No subscription plans found</p>
+    <p class="empty-sub">Click Create New Plan to add your first tier</p>
+    <button type="button" class="btn-primary" (click)="openCreateDialog()">
+      <mat-icon>add</mat-icon>
+      Create New Plan
+    </button>
   </div>
 
-  <!-- Subscription Plans Grid -->
-  <div *ngIf="!loading && !error" class="subscriptions-grid">
-    <div *ngIf="subscriptionPlans.length === 0" class="empty-state">
-      <mat-icon>subscriptions</mat-icon>
-      <p>No subscription plans found</p>
-      <p class="empty-subtitle">Click the + button to create your first subscription plan</p>
-    </div>
+  <div *ngIf="!loading && filteredPlans.length > 0" class="plans-grid">
+    <article
+      *ngFor="let plan of filteredPlans"
+      class="plan-card"
+      [class.popular]="isPopular(plan)">
+      <div class="popular-banner" *ngIf="isPopular(plan)">POPULAR CHOICE</div>
 
-    <div *ngFor="let plan of subscriptionPlans" class="subscription-card">
-      <div class="card-header">
+      <div class="card-top">
         <h3 class="plan-title">{{ plan.title }}</h3>
-        <div class="card-badges">
+        <div class="badges">
           <span
-            class="plan-badge plan-badge--platform"
-            [class.plan-badge--desktop]="plan.platform === 'desktop'"
-            [attr.aria-label]="'Platform: ' + getPlatformLabel(plan)">
+            class="badge"
+            [class.desktop]="(plan.platform || 'mobile') === 'desktop'"
+            [class.mobile]="(plan.platform || 'mobile') !== 'desktop'">
             {{ getPlatformLabel(plan) }}
           </span>
-          <span class="plan-badge" *ngIf="plan.showImage">Image</span>
+          <span class="badge image" *ngIf="plan.showImage">Image</span>
+          <span class="badge hardware" *ngIf="plan.withPrinter">Printer</span>
         </div>
       </div>
-      
-      <div class="card-body">
-        <p class="plan-subtitle">{{ plan.subtitle }}</p>
-        
-        <div class="price-section">
-          <div class="price-row">
-            <span class="price-label">Original Price:</span>
-            <span class="original-price">{{ formatPrice(plan.price) }}</span>
-          </div>
-          <div class="price-row">
-            <span class="price-label">Discounted Price:</span>
-            <span class="discounted-price">{{ formatPrice(plan.discountedPrice) }}</span>
-          </div>
-          <div class="discount-badge">
-            Save {{ formatPrice(plan.price - plan.discountedPrice) }}
-          </div>
-        </div>
 
-        <div class="bullet-points-section">
-          <h4 class="features-title">Features:</h4>
-          <ul class="bullet-points-list">
-            <li *ngFor="let point of plan.bulletPoints">{{ point }}</li>
-          </ul>
+      <p class="plan-subtitle">{{ plan.subtitle || 'Get access to all premium features' }}</p>
+
+      <div class="price-box">
+        <div class="price-row">
+          <span>Original Price:</span>
+          <span class="original">{{ formatPrice(plan.price) }}</span>
         </div>
+        <div class="price-row">
+          <span>Discounted Price:</span>
+          <span class="discounted">{{ formatPrice(plan.discountedPrice) }}</span>
+        </div>
+        <div class="save-badge" *ngIf="getSavings(plan) > 0">
+          Save {{ formatPrice(getSavings(plan)) }}
+        </div>
+      </div>
+
+      <div class="features" *ngIf="plan.bulletPoints?.length">
+        <h4>FEATURES:</h4>
+        <ul>
+          <li *ngFor="let point of plan.bulletPoints">{{ point }}</li>
+        </ul>
       </div>
 
       <div class="card-footer">
-        <span class="created-date">Created: {{ formatDate(plan.createdAt) }}</span>
-        <button class="edit-btn" (click)="openEditDialog(plan)" aria-label="Edit subscription plan" title="Edit plan">
+        <span class="created">Created: {{ formatDate(plan.createdAt) }}</span>
+        <button
+          type="button"
+          class="edit-btn"
+          (click)="openEditDialog(plan)"
+          aria-label="Edit subscription plan"
+          title="Edit plan">
           <mat-icon>edit</mat-icon>
         </button>
       </div>
-    </div>
+    </article>
   </div>
 
-  <!-- Floating Action Button -->
-  <button class="fab" (click)="openCreateDialog()" aria-label="Create new subscription plan">
+  <button class="fab" type="button" (click)="openCreateDialog()" aria-label="Create new subscription plan">
     <mat-icon>add</mat-icon>
   </button>
 </div>
-
-
-

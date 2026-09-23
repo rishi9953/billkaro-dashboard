@@ -336,4 +336,36 @@ export class OrdersListComponent implements OnInit, OnDestroy {
   getStatusLabel(status: string): string {
     return (status || 'unknown').charAt(0).toUpperCase() + (status || 'unknown').slice(1);
   }
+
+  getLogisticsMessage(order: PrinterOrder): { icon: string; text: string; tone: string } {
+    const s = (order.status || '').toLowerCase();
+    if (s === 'delivered') {
+      return {
+        icon: 'check_circle',
+        text: order.printedAt
+          ? `Delivered on ${this.formatDate(order.printedAt)}`
+          : 'Delivered successfully to the outlet address',
+        tone: 'success',
+      };
+    }
+    if (s === 'dispatched') {
+      return {
+        icon: 'local_shipping',
+        text: 'Dispatched — in transit to the delivery address',
+        tone: 'info',
+      };
+    }
+    if (s === 'cancelled') {
+      return {
+        icon: 'cancel',
+        text: 'Order cancelled — delivery will not be processed',
+        tone: 'danger',
+      };
+    }
+    return {
+      icon: 'schedule',
+      text: 'Awaiting Courier Partner Assignment',
+      tone: 'muted',
+    };
+  }
 }

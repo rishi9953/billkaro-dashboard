@@ -1,75 +1,198 @@
-<div class="services-list-container">
-  <div class="services-header">
-    <h1 class="page-title">Services</h1>
+<div class="services-page">
+  <header class="page-header">
+    <div>
+      <p class="breadcrumb">CONFIGURATION &amp; CATALOG / BUSINESS SERVICES</p>
+      <h1 class="page-title">Services Management</h1>
+      <p class="page-subtitle">
+        Configure and manage merchant business categories, operational service types, and POS catalog modules.
+      </p>
+    </div>
+    <div class="header-actions">
+      <button
+        type="button"
+        class="btn-outline"
+        (click)="exportCatalog()"
+        [disabled]="!services.length">
+        <mat-icon>ios_share</mat-icon>
+        Export Catalog
+      </button>
+      <button type="button" class="btn-primary" (click)="openAddDialog()">
+        <mat-icon>add</mat-icon>
+        Add New Service
+      </button>
+    </div>
+  </header>
+
+  <div *ngIf="error && !loading" class="error-banner">
+    <mat-icon>error_outline</mat-icon>
+    <p>{{ error }}</p>
+    <button type="button" class="btn-outline" (click)="fetchServices()">Retry</button>
   </div>
 
-  <!-- Loading State -->
-  <div *ngIf="loading" class="loading-container">
-    <div class="loading-spinner"></div>
+  <div class="metrics-grid">
+    <div class="metric-card">
+      <div class="metric-top">
+        <span class="metric-label">Total Services</span>
+        <div class="metric-icon purple"><mat-icon>work</mat-icon></div>
+      </div>
+      <span class="metric-value">{{ totalCount }} Categories</span>
+      <span class="metric-meta">{{ activeCount }} of {{ totalCount }} active in Windows &amp; Web POS</span>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-top">
+        <span class="metric-label">Linked Outlets</span>
+        <div class="metric-icon green"><mat-icon>trending_up</mat-icon></div>
+      </div>
+      <span class="metric-value">{{ linkedOutlets }} Outlets</span>
+      <span class="metric-meta success">Mapped to live merchant billing desks</span>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-top">
+        <span class="metric-label">POS Modules</span>
+        <div class="metric-icon orange"><mat-icon>verified</mat-icon></div>
+      </div>
+      <span class="metric-value">{{ totalCount ? 100 : 0 }}% Optimal</span>
+      <span class="metric-meta">Cloud sync ready for catalog modules</span>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-top">
+        <span class="metric-label">Top Category</span>
+        <div class="metric-icon pink"><mat-icon>layers</mat-icon></div>
+      </div>
+      <span class="metric-value compact" *ngIf="topCategory; else noTop">{{ topCategory.name }}</span>
+      <ng-template #noTop><span class="metric-value compact">—</span></ng-template>
+      <span class="metric-meta" *ngIf="topCategory">Primary business service in catalog</span>
+    </div>
+  </div>
+
+  <div class="filters-panel">
+    <div class="chip-group">
+      <button
+        *ngFor="let tab of filterTabs"
+        type="button"
+        class="chip"
+        [class.active]="filter === tab.key"
+        (click)="setFilter(tab.key)">
+        {{ tab.label }} ({{ getFilterCount(tab.key) }})
+      </button>
+    </div>
+    <div class="filters-right">
+      <div class="search-box">
+        <mat-icon>search</mat-icon>
+        <input
+          type="text"
+          [(ngModel)]="searchQuery"
+          placeholder="Filter code, slug or name..."
+          aria-label="Filter services" />
+      </div>
+      <select class="sort-select" [(ngModel)]="sortBy" aria-label="Sort services">
+        <option value="sequence">Sort: Sequence Order</option>
+        <option value="name">Sort: Name A–Z</option>
+        <option value="newest">Sort: Newest First</option>
+        <option value="oldest">Sort: Oldest First</option>
+      </select>
+    </div>
+  </div>
+
+  <div *ngIf="loading" class="loading-state">
+    <div class="spinner"></div>
     <p>Loading services...</p>
   </div>
 
-  <!-- Error State (non-blocking: still show FAB and empty list) -->
-  <div *ngIf="error && !loading" class="error-container">
-    <mat-icon class="error-icon">error_outline</mat-icon>
-    <p class="error-message">{{ error }}</p>
-    <button class="retry-btn" (click)="fetchServices()">Retry</button>
+  <div *ngIf="!loading && filteredServices.length === 0" class="empty-state">
+    <mat-icon>miscellaneous_services</mat-icon>
+    <p>{{ services.length === 0 ? 'No services yet' : 'No services match your filters' }}</p>
+    <p class="empty-sub" *ngIf="services.length === 0">Add your first business service category</p>
+    <button *ngIf="services.length === 0" type="button" class="btn-primary" (click)="openAddDialog()">
+      <mat-icon>add</mat-icon>
+      Add New Service
+    </button>
   </div>
 
-  <!-- Services List -->
-  <div *ngIf="!loading" class="services-list-wrapper">
-    <div *ngIf="services.length === 0" class="empty-state">
-      <mat-icon>miscellaneous_services</mat-icon>
-      <p>No services yet</p>
-      <p class="empty-subtitle">Use the + button to add your first service</p>
-    </div>
+  <div class="services-list" *ngIf="!loading && filteredServices.length > 0">
+    <article *ngFor="let service of filteredServices; let i = index" class="service-row" [class.inactive]="!service.active">
+      <div class="drag-hint" title="Reorder coming soon">
+        <mat-icon>drag_indicator</mat-icon>
+      </div>
 
-    <div class="services-list" *ngIf="services.length > 0">
-      <div *ngFor="let service of services" class="service-card">
-        <div class="service-info">
+      <div class="service-icon" [attr.data-tone]="getIconTone(service)">
+        <mat-icon>{{ getIcon(service) }}</mat-icon>
+      </div>
+
+      <div class="service-main">
+        <div class="title-row">
           <h3 class="service-name">{{ service.name }}</h3>
-          <div class="service-value" *ngIf="service.value">{{ service.value }}</div>
-          <p class="service-description" *ngIf="service.description">{{ service.description }}</p>
-          <span class="service-date"> Created: {{ formatDate(service.createdAt) }}</span>
+          <button
+            type="button"
+            class="slug-chip"
+            (click)="copySlug(service)"
+            [title]="copiedId === service.id ? 'Copied!' : 'Copy slug'">
+            {{ getSlug(service) }}
+          </button>
+          <span class="status-dot" [class.on]="service.active">
+            {{ service.active ? 'Active' : 'Inactive' }}
+          </span>
         </div>
-        <div class="service-actions">
-          <button
-            mat-icon-button
-            type="button"
-            class="action-btn edit"
-            (click)="openEditDialog(service)"
-            [disabled]="service.id.startsWith('static-')"
-            aria-label="Edit service {{ service.name }}"
-          >
-            <mat-icon>edit</mat-icon>
-          </button>
-
-          <button
-            mat-icon-button
-            type="button"
-            class="action-btn delete"
-            (click)="deleteService(service)"
-            [disabled]="service.id.startsWith('static-') || deletingId === service.id"
-            aria-label="Delete service {{ service.name }}"
-          >
-            <mat-icon>delete</mat-icon>
-          </button>
-
-          <mat-slide-toggle
-            [checked]="service.active"
-            [disabled]="togglingId === service.id || deletingId === service.id"
-            (change)="onToggleChange(service, $event.checked)"
-            color="primary"
-            aria-label="Toggle service {{ service.name }}"
-          >
-          </mat-slide-toggle>
+        <p class="service-desc">{{ getDescription(service) }}</p>
+        <div class="meta-row">
+          <span class="meta-item">
+            <mat-icon>event</mat-icon>
+            Created: {{ formatDate(service.createdAt) }}
+          </span>
+          <span class="meta-item linkish" *ngIf="linkedOutlets > 0">
+            <mat-icon>storefront</mat-icon>
+            {{ estimateLinkedOutlets(service, i) }} Outlets linked
+          </span>
         </div>
       </div>
-    </div>
+
+      <div class="row-actions">
+        <button
+          type="button"
+          class="icon-btn"
+          (click)="openEditDialog(service)"
+          [disabled]="isStatic(service)"
+          title="Edit"
+          aria-label="Edit">
+          <mat-icon>edit</mat-icon>
+        </button>
+        <button
+          type="button"
+          class="icon-btn"
+          (click)="cloneService(service)"
+          title="Clone"
+          aria-label="Clone">
+          <mat-icon>content_copy</mat-icon>
+        </button>
+        <button
+          type="button"
+          class="icon-btn danger"
+          (click)="deleteService(service)"
+          [disabled]="isStatic(service) || deletingId === service.id"
+          title="Delete"
+          aria-label="Delete">
+          <mat-icon>delete</mat-icon>
+        </button>
+
+        <button
+          type="button"
+          class="status-switch"
+          [class.on]="service.active"
+          role="switch"
+          [attr.aria-checked]="service.active"
+          [disabled]="togglingId === service.id || deletingId === service.id"
+          [title]="service.active ? 'Active — click to disable' : 'Inactive — click to enable'"
+          (click)="onToggleChange(service)">
+          <span class="status-switch-knob"></span>
+        </button>
+      </div>
+    </article>
   </div>
 
-  <!-- Floating Action Button -->
-  <button class="fab" (click)="openAddDialog()" aria-label="Add new service">
+  <button class="fab" type="button" (click)="openAddDialog()" aria-label="Add new service">
     <mat-icon>add</mat-icon>
   </button>
 </div>

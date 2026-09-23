@@ -19,6 +19,8 @@ import { PAGE_URL } from '../../../utilities/constant/page-url.constant';
 
 Chart.register(...registerables);
 
+type DashboardTab = 'overview' | 'profile' | 'orders' | 'staff' | 'inventory' | 'menu' | 'activity';
+
 interface UserProfile {
   id: string;
   brandName?: string;
@@ -229,14 +231,23 @@ interface UserDashboardData {
 export class UserDashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('lineChartCanvas') lineChartCanvas!: ElementRef<HTMLCanvasElement>;
   @ViewChild('doughnutChartCanvas') doughnutChartCanvas!: ElementRef<HTMLCanvasElement>;
-  @ViewChild('topItemsChartCanvas') topItemsChartCanvas!: ElementRef<HTMLCanvasElement>;
-  @ViewChild('paymentChartCanvas') paymentChartCanvas!: ElementRef<HTMLCanvasElement>;
 
   readonly pageUrl = PAGE_URL;
+
+  readonly tabs: { key: DashboardTab; label: string; icon: string }[] = [
+    { key: 'overview', label: 'Overview', icon: 'grid_view' },
+    { key: 'profile', label: 'Profile', icon: 'person' },
+    { key: 'orders', label: 'Orders', icon: 'receipt_long' },
+    { key: 'staff', label: 'Staff', icon: 'badge' },
+    { key: 'inventory', label: 'Inventory', icon: 'inventory_2' },
+    { key: 'menu', label: 'Menu', icon: 'restaurant_menu' },
+    { key: 'activity', label: 'Activity Log', icon: 'history' },
+  ];
 
   loading = true;
   error: string | null = null;
   selectedOutletId = '';
+  activeTab: DashboardTab = 'overview';
   data: UserDashboardData | null = null;
 
   /** Track broken image URLs so placeholders show cleanly */
@@ -245,8 +256,6 @@ export class UserDashboardComponent implements OnInit, AfterViewInit, OnDestroy 
   private userId = '';
   private lineChart: Chart<'line'> | null = null;
   private doughnutChart: Chart<'doughnut'> | null = null;
-  private topItemsChart: Chart<'bar'> | null = null;
-  private paymentChart: Chart<'doughnut'> | null = null;
   private destroy$ = new Subject<void>();
 
   constructor(
@@ -299,7 +308,9 @@ export class UserDashboardComponent implements OnInit, AfterViewInit, OnDestroy 
           this.selectedOutletId = payload.selectedOutletId ?? '';
           this.loading = false;
           this.cdr.detectChanges();
-          setTimeout(() => this.initCharts(), 0);
+          if (this.activeTab === 'overview') {
+            setTimeout(() => this.initCharts(), 0);
+          }
         },
         error: (err) => {
           this.loading = false;
@@ -317,6 +328,17 @@ export class UserDashboardComponent implements OnInit, AfterViewInit, OnDestroy 
     this.fetchDashboard(this.selectedOutletId || undefined);
   }
 
+  setTab(tab: DashboardTab): void {
+    if (this.activeTab === tab) return;
+    this.activeTab = tab;
+    this.cdr.detectChanges();
+    if (tab === 'overview') {
+      setTimeout(() => this.initCharts(), 0);
+    } else {
+      this.destroyCharts();
+    }
+  }
+
   goBack(): void {
     this.router.navigateByUrl(PAGE_URL.USERS);
   }
@@ -328,17 +350,107 @@ export class UserDashboardComponent implements OnInit, AfterViewInit, OnDestroy 
     return name || u.brandName || '—';
   }
 
+  get initials(): string {
+    const u = this.data?.user;
+    if (!u) return '?';
+    const first = u.firstName?.trim()?.[0] || '';
+    const last = u.lastName?.trim()?.[0] || '';
+    if (first || last) return (first + last).toUpperCase();
+    const name = this.fullName;
+    return name && name !== '—' ? name.charAt(0).toUpperCase() : '?';
+  }
+
+  get roleSubtitle(): string {
+    const outlet = this.selectedOutlet;
+    const brand = this.data?.user?.brandName;
+    if (outlet?.businessName && brand) return `${outlet.businessName}`;
+    return outlet?.businessName || brand || '—';
+  }
+
   get profileImage(): string {
     return this.data?.user?.image?.trim() || '';
   }
 
   get selectedOutlet(): OutletSummary | null {
-    return this.data?.selectedOutlet ?? null;
+    return this.data?.selectedOutlet ?? this.data?.outlets?.find((o) => o.id === this.selectedOutletId) ?? null;
+  }
+
+  get completionRate(): string {
+    const total = this.data?.stats?.totalOrders ?? 0;
+    const closed = this.data?.stats?.closedOrders ?? 0;
+    if (!total) return '0';
+    return Math.round((closed / total) * 100).toString();
+  }
+
+  get staffBreakdown(): string {
+    const staff = this.data?.staff ?? [];
+    if (!staff.length) return 'No staff assigned';
+    const counts = new Map<string, number>();
+    staff.forEach((s) => {
+      const label = this.roleLabel(s.role);
+      counts.set(label, (counts.get(label) || 0) + 1);
+    });
+    return Array.from(counts.entries())
+      .slice(0, 3)
+      .map(([role, n]) => `${n} ${role}${n > 1 ? 's' : ''}`)
+      .join(', ');
+  }
+
+  get lowStockPreview(): string {
+    const items = this.data?.inventory?.lowStockMaterials ?? [];
+    if (!items.length) return 'Stock looks healthy';
+    return items
+      .slice(0, 3)
+      .map((m) => m.name)
+      .join(', ');
+  }
+
+  get walletHealth(): string {
+    const bal = this.data?.walletBalance ?? 0;
+    if (bal <= 0) return 'Empty';
+    if (bal < 500) return 'Low';
+    return 'Healthy';
+  }
+
+  exportStatement(): void {
+    if (!this.data) return;
+    const d = this.data;
+    const rows = [
+      ['Field', 'Value'],
+      ['User', this.fullName],
+      ['Email', d.user.email || ''],
+      ['Mobile', d.user.mobile || ''],
+      ['Brand', d.user.brandName || ''],
+      ['Outlet', this.selectedOutlet?.businessName || ''],
+      ['Wallet Balance', String(d.walletBalance ?? 0)],
+      ['Last Recharge', d.lastRecharge ? String(d.lastRecharge.amount) : ''],
+      ['Subscription', d.lastSubscription?.plan?.title || ''],
+      ['Total Orders', String(d.stats.totalOrders)],
+      ['Order Revenue', String(d.stats.totalRevenue)],
+      ['Staff', String(d.stats.staffCount)],
+      ['Inventory', String(d.inventory.totalRawMaterials)],
+      ['Menu Items', String(d.stats.itemCount)],
+    ];
+    const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `user-statement-${this.userId}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   formatCurrency(amount: number | null | undefined): string {
     return `₹${Number(amount ?? 0).toLocaleString('en-IN', {
       minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    })}`;
+  }
+
+  formatCurrencyFixed(amount: number | null | undefined): string {
+    return `₹${Number(amount ?? 0).toLocaleString('en-IN', {
+      minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     })}`;
   }
@@ -402,16 +514,12 @@ export class UserDashboardComponent implements OnInit, AfterViewInit, OnDestroy 
   private destroyCharts(): void {
     this.lineChart?.destroy();
     this.doughnutChart?.destroy();
-    this.topItemsChart?.destroy();
-    this.paymentChart?.destroy();
     this.lineChart = null;
     this.doughnutChart = null;
-    this.topItemsChart = null;
-    this.paymentChart = null;
   }
 
   private initCharts(): void {
-    if (!this.data) return;
+    if (!this.data || this.activeTab !== 'overview') return;
     this.destroyCharts();
 
     const days = this.data.charts?.revenueByDay ?? [];
@@ -426,22 +534,43 @@ export class UserDashboardComponent implements OnInit, AfterViewInit, OnDestroy 
             {
               label: 'Order revenue',
               data: days.map((d) => d.revenue),
-              borderColor: 'rgb(59, 130, 246)',
-              backgroundColor: 'rgba(59, 130, 246, 0.12)',
+              borderColor: 'rgb(109, 40, 217)',
+              backgroundColor: 'rgba(109, 40, 217, 0.14)',
               fill: true,
-              tension: 0.35,
+              tension: 0.4,
               pointRadius: 3,
-              pointBackgroundColor: 'rgb(59, 130, 246)',
+              pointHoverRadius: 5,
+              pointBackgroundColor: 'rgb(109, 40, 217)',
+              pointBorderColor: '#fff',
+              pointBorderWidth: 2,
             },
           ],
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#1e293b',
+              padding: 10,
+              cornerRadius: 8,
+              displayColors: false,
+              callbacks: {
+                label: (ctx) => this.formatCurrency(ctx.parsed.y),
+              },
+            },
+          },
           scales: {
-            y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.06)' } },
-            x: { grid: { display: false } },
+            y: {
+              beginAtZero: true,
+              grid: { color: 'rgba(0,0,0,0.05)' },
+              border: { display: false },
+            },
+            x: {
+              grid: { display: false },
+              border: { display: false },
+            },
           },
         },
       };
@@ -458,76 +587,28 @@ export class UserDashboardComponent implements OnInit, AfterViewInit, OnDestroy 
           datasets: [
             {
               data: [status.closed, status.pending, status.deleted],
-              backgroundColor: ['rgb(34, 197, 94)', 'rgb(251, 191, 36)', 'rgb(148, 163, 184)'],
+              backgroundColor: ['#22c55e', '#f59e0b', '#94a3b8'],
               borderWidth: 0,
+              hoverOffset: 4,
             },
           ],
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          cutout: '68%',
-          plugins: { legend: { position: 'bottom' } },
+          cutout: '72%',
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#1e293b',
+              padding: 10,
+              cornerRadius: 8,
+            },
+          },
         },
       };
       const ctx = this.doughnutChartCanvas.nativeElement.getContext('2d');
       if (ctx) this.doughnutChart = new Chart(ctx, doughnutConfig);
-    }
-
-    const topItems = this.data.charts?.topItems ?? [];
-    if (this.topItemsChartCanvas?.nativeElement) {
-      const barConfig: ChartConfiguration<'bar'> = {
-        type: 'bar',
-        data: {
-          labels: topItems.map((t) => t.label),
-          datasets: [
-            {
-              label: 'Qty sold',
-              data: topItems.map((t) => t.quantity),
-              backgroundColor: 'rgba(14, 165, 233, 0.75)',
-              borderRadius: 6,
-            },
-          ],
-        },
-        options: {
-          indexAxis: 'y',
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
-          scales: {
-            x: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.06)' } },
-            y: { grid: { display: false } },
-          },
-        },
-      };
-      const ctx = this.topItemsChartCanvas.nativeElement.getContext('2d');
-      if (ctx) this.topItemsChart = new Chart(ctx, barConfig);
-    }
-
-    const payments = this.data.charts?.paymentMethods ?? [];
-    if (this.paymentChartCanvas?.nativeElement) {
-      const colors = ['#3b82f6', '#22c55e', '#f59e0b', '#ec4899', '#8b5cf6', '#0ea5e9', '#94a3b8'];
-      const payConfig: ChartConfiguration<'doughnut'> = {
-        type: 'doughnut',
-        data: {
-          labels: payments.map((p) => p.label),
-          datasets: [
-            {
-              data: payments.map((p) => p.amount),
-              backgroundColor: payments.map((_, i) => colors[i % colors.length]),
-              borderWidth: 0,
-            },
-          ],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          cutout: '62%',
-          plugins: { legend: { position: 'bottom' } },
-        },
-      };
-      const ctx = this.paymentChartCanvas.nativeElement.getContext('2d');
-      if (ctx) this.paymentChart = new Chart(ctx, payConfig);
     }
   }
 }

@@ -1,73 +1,254 @@
-<div class="wallet-coupons-container">
-  <div class="wallet-coupons-header">
-    <h1 class="page-title">Wallet Coupons</h1>
-    <p class="page-subtitle">
-      Create coupon codes that credit money to outlet wallets when redeemed in the BillKaro app.
-    </p>
+<div class="coupons-page">
+  <header class="page-header">
+    <div>
+      <p class="breadcrumb">MARKETING &amp; LOYALTY / WALLET CREDITS</p>
+      <h1 class="page-title">Wallet Coupons</h1>
+      <p class="page-subtitle">
+        Create and manage coupon codes that credit money to outlet wallets when redeemed in the BillKaro app.
+      </p>
+    </div>
+    <div class="header-actions">
+      <button
+        type="button"
+        class="btn-outline"
+        (click)="exportCsv()"
+        [disabled]="!coupons.length">
+        <mat-icon>download</mat-icon>
+        Export CSV
+      </button>
+      <button type="button" class="btn-primary" (click)="openAddDialog()">
+        <mat-icon>add</mat-icon>
+        Create Coupon
+      </button>
+    </div>
+  </header>
+
+  <div *ngIf="error && !loading" class="error-banner">
+    <mat-icon>error_outline</mat-icon>
+    <p>{{ error }}</p>
+    <button type="button" class="btn-outline" (click)="fetchCoupons()">Retry</button>
   </div>
 
-  <div *ngIf="loading" class="loading-container">
-    <div class="loading-spinner"></div>
+  <div class="metrics-grid">
+    <div class="metric-card">
+      <div class="metric-top">
+        <span class="metric-label">Total Active Coupons</span>
+        <div class="metric-icon purple"><mat-icon>confirmation_number</mat-icon></div>
+      </div>
+      <span class="metric-value">{{ activeCount }} / {{ totalCount }} live</span>
+      <span class="metric-meta">{{ campaignCapacityPct }}% campaign capacity utilized</span>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-top">
+        <span class="metric-label">Redemption Rate</span>
+        <div class="metric-icon green"><mat-icon>trending_up</mat-icon></div>
+      </div>
+      <span class="metric-value">{{ redemptionRate }}%</span>
+      <span class="metric-meta success">
+        {{ totalRedemptions }} claims across {{ totalCount }} coupons
+      </span>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-top">
+        <span class="metric-label">Credits Disbursed</span>
+        <div class="metric-icon blue"><mat-icon>account_balance_wallet</mat-icon></div>
+      </div>
+      <span class="metric-value">{{ formatAmountFixed(creditsDisbursed) }}</span>
+      <span class="metric-meta">Total wallet load</span>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-top">
+        <span class="metric-label">Top Performer</span>
+        <div class="metric-icon violet"><mat-icon>emoji_events</mat-icon></div>
+      </div>
+      <span class="metric-value compact" *ngIf="topPerformer; else noTop">{{ topPerformer.code }}</span>
+      <ng-template #noTop><span class="metric-value compact">—</span></ng-template>
+      <span class="metric-meta" *ngIf="topPerformer">
+        {{ topPerformer.redeemedCount || 0 }} claims · {{ formatAmount(topPerformerCredits) }} distributed
+      </span>
+    </div>
+  </div>
+
+  <div class="filters-panel">
+    <div class="chip-group">
+      <button
+        *ngFor="let tab of filterTabs"
+        type="button"
+        class="chip"
+        [class.active]="filter === tab.key"
+        (click)="setFilter(tab.key)">
+        {{ tab.label }} ({{ getFilterCount(tab.key) }})
+      </button>
+    </div>
+    <div class="filters-right">
+      <div class="search-box">
+        <mat-icon>search</mat-icon>
+        <input
+          type="text"
+          [(ngModel)]="searchQuery"
+          placeholder="Search codes..."
+          aria-label="Search coupon codes" />
+      </div>
+      <select class="sort-select" [(ngModel)]="sortBy" aria-label="Sort coupons">
+        <option value="newest">Newest First</option>
+        <option value="oldest">Oldest First</option>
+        <option value="amount">Highest Credit</option>
+        <option value="redemptions">Most Redeemed</option>
+      </select>
+    </div>
+  </div>
+
+  <div *ngIf="loading" class="loading-state">
+    <div class="spinner"></div>
     <p>Loading wallet coupons...</p>
   </div>
 
-  <div *ngIf="error && !loading" class="error-container">
-    <mat-icon class="error-icon">error_outline</mat-icon>
-    <p class="error-message">{{ error }}</p>
-    <button class="retry-btn" (click)="fetchCoupons()">Retry</button>
+  <div *ngIf="!loading && filteredCoupons.length === 0" class="empty-state">
+    <mat-icon>confirmation_number</mat-icon>
+    <p>{{ coupons.length === 0 ? 'No wallet coupons yet' : 'No coupons match your filters' }}</p>
+    <p class="empty-sub" *ngIf="coupons.length === 0">
+      Create your first coupon code for outlet wallet credits
+    </p>
+    <button *ngIf="coupons.length === 0" type="button" class="btn-primary" (click)="openAddDialog()">
+      <mat-icon>add</mat-icon>
+      Create Coupon
+    </button>
   </div>
 
-  <div *ngIf="!loading" class="cards-grid-wrapper">
-    <div *ngIf="coupons.length === 0" class="empty-state">
-      <mat-icon>confirmation_number</mat-icon>
-      <p>No wallet coupons yet</p>
-      <p class="empty-subtitle">Use the + button to create your first coupon code</p>
-    </div>
+  <div class="coupons-grid" *ngIf="!loading && filteredCoupons.length > 0">
+    <article
+      *ngFor="let coupon of filteredCoupons"
+      class="coupon-card"
+      [class.scheduled]="getStatus(coupon) === 'scheduled'"
+      [class.draft]="getStatus(coupon) === 'draft'">
+      <div class="card-top">
+        <h3 class="card-code">{{ coupon.code }}</h3>
+        <span
+          class="status-badge"
+          [class.active]="getStatus(coupon) === 'active'"
+          [class.scheduled]="getStatus(coupon) === 'scheduled'"
+          [class.draft]="getStatus(coupon) === 'draft'">
+          {{ getStatusLabel(coupon) }}
+        </span>
+      </div>
 
-    <div class="cards-grid" *ngIf="coupons.length > 0">
-      <div *ngFor="let coupon of coupons" class="wallet-coupon-card">
-        <div class="card-top">
-          <div>
-            <h3 class="card-code">{{ coupon.code }}</h3>
-            <p class="card-amount">{{ formatAmount(coupon.creditAmount) }}</p>
-            <p class="card-usage">{{ usageLabel(coupon) }}</p>
-          </div>
-          <span class="status-pill" [class.inactive]="!coupon.active">
-            {{ coupon.active ? 'Active' : 'Inactive' }}
-          </span>
+      <p class="card-amount">{{ formatAmount(coupon.creditAmount) }}</p>
+      <p class="card-desc">
+        {{ coupon.description || 'Wallet credit coupon for BillKaro outlet top-ups.' }}
+      </p>
+
+      <div class="usage-block">
+        <div class="usage-row">
+          <span>{{ usageLabel(coupon) }}</span>
+          <span>{{ usagePercent(coupon) }}%</span>
         </div>
+        <div class="usage-track">
+          <div class="usage-fill" [style.width.%]="usagePercent(coupon)"></div>
+        </div>
+      </div>
 
-        <p class="card-description" *ngIf="coupon.description">{{ coupon.description }}</p>
-        <p class="card-meta">
-          Starts {{ formatDate(coupon.startsAt) }} · Expires {{ formatDate(coupon.expiresAt) }}
-        </p>
-        <p class="card-meta">Created {{ formatDate(coupon.createdAt) }}</p>
+      <div class="meta-grid">
+        <div>
+          <span class="meta-label">Starts</span>
+          <strong>{{ formatDate(coupon.startsAt) }}</strong>
+        </div>
+        <div>
+          <span class="meta-label">Expires</span>
+          <strong>{{ formatDate(coupon.expiresAt) }}</strong>
+        </div>
+        <div>
+          <span class="meta-label">Created</span>
+          <strong>{{ formatDate(coupon.createdAt) }}</strong>
+        </div>
+      </div>
 
-        <div class="card-actions">
-          <button mat-icon-button type="button" (click)="openEditDialog(coupon)" aria-label="Edit">
+      <div class="card-footer">
+        <div class="icon-actions">
+          <button type="button" class="icon-btn" (click)="openEditDialog(coupon)" title="Edit" aria-label="Edit">
             <mat-icon>edit</mat-icon>
           </button>
           <button
-            mat-icon-button
             type="button"
+            class="icon-btn danger"
             (click)="deleteCoupon(coupon)"
             [disabled]="deletingId === coupon.id"
-            aria-label="Delete"
-          >
+            title="Delete"
+            aria-label="Delete">
             <mat-icon>delete</mat-icon>
           </button>
-          <mat-slide-toggle
-            [checked]="coupon.active"
-            [disabled]="togglingId === coupon.id || deletingId === coupon.id"
-            (change)="onToggleChange(coupon, $event.checked)"
-            color="primary"
-          ></mat-slide-toggle>
+          <button
+            type="button"
+            class="icon-btn"
+            (click)="copyCode(coupon)"
+            [title]="copiedId === coupon.id ? 'Copied!' : 'Copy code'"
+            aria-label="Copy code">
+            <mat-icon>{{ copiedId === coupon.id ? 'check' : 'content_copy' }}</mat-icon>
+          </button>
         </div>
+
+        <button
+          type="button"
+          class="status-switch"
+          [class.on]="coupon.active"
+          role="switch"
+          [attr.aria-checked]="coupon.active"
+          [disabled]="togglingId === coupon.id || deletingId === coupon.id"
+          [title]="coupon.active ? 'Active — click to disable' : 'Inactive — click to enable'"
+          (click)="onToggleChange(coupon)">
+          <span class="status-switch-knob"></span>
+        </button>
       </div>
-    </div>
+    </article>
   </div>
 
-  <button class="fab" (click)="openAddDialog()" aria-label="Add wallet coupon">
+  <section class="redemptions-section" *ngIf="!loading">
+    <div class="section-head">
+      <h2>Recent Coupon Redemptions</h2>
+      <span class="count-pill">{{ totalRedemptions }} total claims</span>
+    </div>
+
+    <div class="table-card" *ngIf="redeemedCoupons.length > 0; else noRedemptions">
+      <table>
+        <thead>
+          <tr>
+            <th>Coupon Code</th>
+            <th>Credit Amount</th>
+            <th>Claims</th>
+            <th>Total Distributed</th>
+            <th>Status</th>
+            <th>Created</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let coupon of redeemedCoupons">
+            <td class="code-cell">{{ coupon.code }}</td>
+            <td>{{ formatAmountFixed(coupon.creditAmount) }}</td>
+            <td>{{ coupon.redeemedCount }}</td>
+            <td class="credit-cell">
+              +{{ formatAmountFixed((coupon.redeemedCount || 0) * (coupon.creditAmount || 0)) }}
+            </td>
+            <td>
+              <span class="redeem-status">Redeemed</span>
+            </td>
+            <td>{{ formatDateTime(coupon.createdAt) }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <ng-template #noRedemptions>
+      <div class="empty-redemptions">
+        <mat-icon>receipt_long</mat-icon>
+        <p>No redemptions yet</p>
+        <p class="empty-sub">Claims will show here once merchants redeem coupon codes.</p>
+      </div>
+    </ng-template>
+  </section>
+
+  <button class="fab" type="button" (click)="openAddDialog()" aria-label="Add wallet coupon">
     <mat-icon>add</mat-icon>
   </button>
 </div>
