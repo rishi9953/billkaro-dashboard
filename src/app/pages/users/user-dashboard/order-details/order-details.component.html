@@ -1,0 +1,144 @@
+<section class="order-details">
+  <div *ngIf="loading" class="od-loading">
+    <div class="spinner"></div>
+    <p>Loading order details...</p>
+  </div>
+
+  <div *ngIf="error && !loading" class="od-error">
+    <mat-icon>error_outline</mat-icon>
+    <p>{{ error }}</p>
+    <button type="button" class="btn-primary" (click)="fetchOrder()">Retry</button>
+  </div>
+
+  <ng-container *ngIf="!loading && !error && order as o">
+    <div class="page-header">
+      <button type="button" class="back-btn" (click)="goBack()">
+        <mat-icon>arrow_back</mat-icon>
+        Back to user
+      </button>
+
+      <div class="header-main">
+        <div>
+          <h1>Bill #{{ o.billNumber }}</h1>
+          <p class="subtitle">{{ formatDateTime(o.createdAt) }}</p>
+        </div>
+        <span class="badge" [ngClass]="statusClass(o.status)">{{ o.status }}</span>
+      </div>
+    </div>
+
+    <div class="details-grid">
+      <div class="section-card">
+        <h3>Customer</h3>
+        <div class="info-grid">
+          <div class="info-item">
+            <span class="label">Name</span>
+            <span class="value">{{ display(o.customerName) }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Phone</span>
+            <span class="value">{{ display(o.phoneNumber) }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Table</span>
+            <span class="value">{{ display(o.tableNumber) }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Order from</span>
+            <span class="value">{{ display(o.orderFrom) }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <h3>Payment</h3>
+        <div class="info-grid">
+          <div class="info-item">
+            <span class="label">Method</span>
+            <span class="value">{{ display(o.paymentReceivedIn) }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Total</span>
+            <span class="value amount">{{ formatCurrency(o.totalAmount) }}</span>
+          </div>
+        </div>
+
+        <div class="split-list" *ngIf="o.splitPayments?.length">
+          <span class="label">Split payments</span>
+          <div class="split-row" *ngFor="let split of o.splitPayments">
+            <span>{{ display(split.paymentMethod) }}</span>
+            <strong>{{ formatCurrency(split.amount) }}</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-card" *ngIf="o.specialInstructions">
+      <h3>Special instructions</h3>
+      <p class="instructions">{{ o.specialInstructions }}</p>
+    </div>
+
+    <div class="section-card">
+      <div class="section-header">
+        <h3>Items</h3>
+        <span class="list-meta">{{ o.items?.length || 0 }} line(s)</span>
+      </div>
+
+      <div class="table-wrap" *ngIf="o.items?.length; else noItems">
+        <table>
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th>Qty</th>
+              <th>Price</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of o.items">
+              <td>
+                <div class="cell-stack">
+                  <strong>{{ item.itemName }}</strong>
+                  <span *ngIf="item.variantName">{{ item.variantName }}</span>
+                  <span *ngIf="item.category">{{ item.category }}</span>
+                  <span *ngIf="item.itemRemark" class="remark">{{ item.itemRemark }}</span>
+                </div>
+              </td>
+              <td>{{ item.quantity }}</td>
+              <td>{{ formatCurrency(item.salePrice) }}</td>
+              <td>{{ formatCurrency(lineTotal(item)) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <ng-template #noItems>
+        <p class="empty-text">No items on this order.</p>
+      </ng-template>
+    </div>
+
+    <div class="section-card totals-card">
+      <h3>Bill summary</h3>
+      <div class="totals">
+        <div class="total-row">
+          <span>Subtotal</span>
+          <strong>{{ formatCurrency(o.subtotal) }}</strong>
+        </div>
+        <div class="total-row">
+          <span>Tax</span>
+          <strong>{{ formatCurrency(o.totalTax) }}</strong>
+        </div>
+        <div class="total-row" *ngIf="(o.serviceCharge || 0) > 0">
+          <span>Service charge</span>
+          <strong>{{ formatCurrency(o.serviceCharge) }}</strong>
+        </div>
+        <div class="total-row" *ngIf="(o.discount || 0) > 0">
+          <span>Discount</span>
+          <strong>-{{ formatCurrency(o.discount) }}</strong>
+        </div>
+        <div class="total-row grand">
+          <span>Grand total</span>
+          <strong>{{ formatCurrency(o.totalAmount) }}</strong>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+</section>

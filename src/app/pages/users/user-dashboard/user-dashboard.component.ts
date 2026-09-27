@@ -16,6 +16,7 @@ import { Subject, takeUntil } from 'rxjs';
 import { Chart, ChartConfiguration, registerables } from 'chart.js';
 import { API_ENDPOINTS } from '../../../utilities/constant/api-url.constant';
 import { PAGE_URL } from '../../../utilities/constant/page-url.constant';
+import { NumberPaginatorComponent } from '../../../shared/components/number-paginator/number-paginator.component';
 
 Chart.register(...registerables);
 
@@ -224,7 +225,7 @@ interface UserDashboardData {
 @Component({
   selector: 'app-user-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatIconModule, RouterModule],
+  imports: [CommonModule, FormsModule, MatIconModule, RouterModule, NumberPaginatorComponent],
   templateUrl: './user-dashboard.component.html',
   styleUrls: ['./user-dashboard.component.scss'],
 })
@@ -250,6 +251,18 @@ export class UserDashboardComponent implements OnInit, AfterViewInit, OnDestroy 
   activeTab: DashboardTab = 'overview';
   data: UserDashboardData | null = null;
 
+  /** Orders tab filters */
+  readonly orderStatusTabs: { key: 'all' | 'closed' | 'pending'; label: string }[] = [
+    { key: 'all', label: 'All' },
+    { key: 'closed', label: 'Closed' },
+    { key: 'pending', label: 'Pending' },
+  ];
+  orderStatusFilter: 'all' | 'closed' | 'pending' = 'all';
+  orderSearchQuery = '';
+  orderPaymentFilter = '';
+  orderPageIndex = 0;
+  readonly orderPageSize = 20;
+
   /** Track broken image URLs so placeholders show cleanly */
   failedImages = new Set<string>();
 
@@ -273,6 +286,13 @@ export class UserDashboardComponent implements OnInit, AfterViewInit, OnDestroy 
         return;
       }
       this.fetchDashboard();
+    });
+
+    this.route.queryParamMap.pipe(takeUntil(this.destroy$)).subscribe((params) => {
+      const tab = params.get('tab') as DashboardTab | null;
+      if (tab && this.tabs.some((t) => t.key === tab)) {
+        this.activeTab = tab;
+      }
     });
   }
 
@@ -306,6 +326,7 @@ export class UserDashboardComponent implements OnInit, AfterViewInit, OnDestroy 
               : (res as UserDashboardData);
           this.data = payload;
           this.selectedOutletId = payload.selectedOutletId ?? '';
+          this.resetOrderFilters();
           this.loading = false;
           this.cdr.detectChanges();
           if (this.activeTab === 'overview') {
@@ -341,6 +362,105 @@ export class UserDashboardComponent implements OnInit, AfterViewInit, OnDestroy 
 
   goBack(): void {
     this.router.navigateByUrl(PAGE_URL.USERS);
+  }
+
+  openOrderDetails(order: OrderRow): void {
+    if (!order?.id || !this.userId) return;
+    this.router.navigateByUrl(PAGE_URL.USER_ORDER_DETAILS(this.userId, order.id));
+  }
+
+  setOrderStatusFilter(key: 'all' | 'closed' | 'pending'): void {
+    this.orderStatusFilter = key;
+    this.orderPageIndex = 0;
+  }
+
+  onOrderSearchChange(): void {
+    this.orderPageIndex = 0;
+  }
+
+  onOrderPaymentFilterChange(): void {
+    this.orderPageIndex = 0;
+  }
+
+  onOrderPageChange(pageIndex: number): void {
+    this.orderPageIndex = pageIndex;
+  }
+
+  clearOrderFilters(): void {
+    this.resetOrderFilters();
+  }
+
+  getOrderStatusCount(key: 'all' | 'closed' | 'pending'): number {
+    const orders = this.data?.recentOrders ?? [];
+    if (key === 'all') return orders.length;
+    return orders.filter((o) => (o.status || '').toLowerCase() === key).length;
+  }
+
+  get orderPaymentMethods(): string[] {
+    const methods = new Set<string>();
+    (this.data?.recentOrders ?? []).forEach((o) => {
+      const method = (o.paymentReceivedIn || '').trim();
+      if (method) methods.add(method);
+    });
+    return Array.from(methods).sort((a, b) => a.localeCompare(b));
+  }
+
+  get filteredOrders(): OrderRow[] {
+    const orders = this.data?.recentOrders ?? [];
+    const q = this.orderSearchQuery.trim().toLowerCase();
+    return orders.filter((order) => {
+      if (
+        this.orderStatusFilter !== 'all' &&
+        (order.status || '').toLowerCase() !== this.orderStatusFilter
+      ) {
+        return false;
+      }
+      if (
+        this.orderPaymentFilter &&
+        (order.paymentReceivedIn || '').trim() !== this.orderPaymentFilter
+      ) {
+        return false;
+      }
+      if (!q) return true;
+      const haystack = [
+        order.billNumber,
+        order.customerName,
+        order.phoneNumber,
+        order.paymentReceivedIn,
+        order.tableNumber,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      return haystack.includes(q);
+    });
+  }
+
+  get pagedOrders(): OrderRow[] {
+    const filtered = this.filteredOrders;
+    const maxPage = Math.max(0, Math.ceil(filtered.length / this.orderPageSize) - 1);
+    const page = Math.min(this.orderPageIndex, maxPage);
+    const start = page * this.orderPageSize;
+    return filtered.slice(start, start + this.orderPageSize);
+  }
+
+  get orderShowingFrom(): number {
+    if (!this.filteredOrders.length) return 0;
+    return this.orderPageIndex * this.orderPageSize + 1;
+  }
+
+  get orderShowingTo(): number {
+    return Math.min(
+      (this.orderPageIndex + 1) * this.orderPageSize,
+      this.filteredOrders.length,
+    );
+  }
+
+  private resetOrderFilters(): void {
+    this.orderStatusFilter = 'all';
+    this.orderSearchQuery = '';
+    this.orderPaymentFilter = '';
+    this.orderPageIndex = 0;
   }
 
   get fullName(): string {

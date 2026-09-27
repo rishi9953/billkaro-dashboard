@@ -285,12 +285,61 @@
           <div><span>Revenue</span><strong>{{ formatCurrency(d.orderReport.totalRevenue) }}</strong></div>
         </div>
       </div>
+
+      <div class="orders-filters">
+        <div class="filter-tabs">
+          <button
+            *ngFor="let tab of orderStatusTabs"
+            type="button"
+            class="filter-tab"
+            [class.active]="orderStatusFilter === tab.key"
+            (click)="setOrderStatusFilter(tab.key)">
+            {{ tab.label }} ({{ getOrderStatusCount(tab.key) }})
+          </button>
+        </div>
+
+        <div class="orders-filters-row">
+          <div class="search-box">
+            <mat-icon>search</mat-icon>
+            <input
+              type="text"
+              placeholder="Search bill #, customer, phone..."
+              [(ngModel)]="orderSearchQuery"
+              (ngModelChange)="onOrderSearchChange()"
+              aria-label="Search orders" />
+          </div>
+
+          <select
+            [(ngModel)]="orderPaymentFilter"
+            (ngModelChange)="onOrderPaymentFilterChange()"
+            aria-label="Filter by payment method">
+            <option value="">All Payment Methods</option>
+            <option *ngFor="let method of orderPaymentMethods" [value]="method">{{ method }}</option>
+          </select>
+
+          <button
+            type="button"
+            class="btn-clear-filters"
+            *ngIf="orderStatusFilter !== 'all' || orderSearchQuery || orderPaymentFilter"
+            (click)="clearOrderFilters()">
+            Clear filters
+          </button>
+        </div>
+      </div>
+
       <div class="section-card">
-        <div class="section-header"><h3>Recent Orders / Bills</h3></div>
-        <div class="table-wrap" *ngIf="d.recentOrders.length; else noOrders">
+        <div class="section-header">
+          <h3>Recent Orders / Bills</h3>
+          <span class="list-meta" *ngIf="d.recentOrders.length">
+            Showing {{ filteredOrders.length }} of {{ d.recentOrders.length }}
+          </span>
+        </div>
+
+        <div class="table-wrap" *ngIf="d.recentOrders.length && filteredOrders.length; else noOrders">
           <table>
             <thead>
               <tr>
+                <th>S.No</th>
                 <th>Bill #</th>
                 <th>Customer</th>
                 <th>Items</th>
@@ -301,7 +350,13 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let order of d.recentOrders">
+              <tr
+                *ngFor="let order of pagedOrders; let i = index"
+                class="clickable-row"
+                (click)="openOrderDetails(order)"
+                tabindex="0"
+                (keydown.enter)="openOrderDetails(order)">
+                <td>{{ orderShowingFrom + i }}</td>
                 <td>{{ order.billNumber }}</td>
                 <td>
                   <div class="cell-stack">
@@ -318,7 +373,24 @@
             </tbody>
           </table>
         </div>
-        <ng-template #noOrders><p class="empty-text">No orders for this outlet.</p></ng-template>
+
+        <div class="table-footer" *ngIf="filteredOrders.length">
+          <p>Showing {{ orderShowingFrom }} to {{ orderShowingTo }} of {{ filteredOrders.length }} entries</p>
+          <app-number-paginator
+            [length]="filteredOrders.length"
+            [pageSize]="orderPageSize"
+            [pageIndex]="orderPageIndex"
+            (pageChange)="onOrderPageChange($event)">
+          </app-number-paginator>
+        </div>
+
+        <ng-template #noOrders>
+          <p class="empty-text" *ngIf="!d.recentOrders.length">No orders for this outlet.</p>
+          <div class="empty-filtered" *ngIf="d.recentOrders.length && !filteredOrders.length">
+            <p class="empty-text">No orders match the selected filters.</p>
+            <button type="button" class="btn-clear-filters" (click)="clearOrderFilters()">Show all orders</button>
+          </div>
+        </ng-template>
       </div>
     </ng-container>
 

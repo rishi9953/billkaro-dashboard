@@ -44,6 +44,8 @@ export const API_ENDPOINTS = {
     const base = `${API_BASE_URL}/dashboard/users/${userId}`;
     return outletId ? `${base}?outletId=${encodeURIComponent(outletId)}` : base;
   },
+  /** POS order by id: GET /api/orders/:id */
+  ORDER_BY_ID: (id: string) => `${API_BASE_URL}/orders/${id}`,
   /** Services list: GET. Create/update when backend is ready. */
   SERVICES: `${API_BASE_URL}/services`,
   SERVICE_UPDATE: (id: string) => `${API_BASE_URL}/services/${id}`,
