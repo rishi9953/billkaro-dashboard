@@ -1,0 +1,137 @@
+<div class="dialog-container">
+  <div class="dialog-header">
+    <h2 class="dialog-title">Add Money</h2>
+    <button mat-icon-button class="close-btn" (click)="closeDialog()" aria-label="Close dialog">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <div class="dialog-content">
+    <form [formGroup]="form" (ngSubmit)="onSubmit()">
+      <div class="form-card">
+        <div class="form-group">
+          <label for="userSearch">Select user *</label>
+          <input
+            id="userSearch"
+            type="text"
+            [value]="userSearch"
+            (input)="onUserSearch($event)"
+            placeholder="Search by name, email, brand..."
+            [disabled]="loadingUsers" />
+          <select id="userId" formControlName="userId" [disabled]="loadingUsers">
+            <option value="">{{ loadingUsers ? 'Loading users...' : 'Choose a user' }}</option>
+            <option *ngFor="let user of filteredUsers" [value]="user.id">
+              {{ userLabel(user) }}
+              <ng-container *ngIf="user.email"> — {{ user.email }}</ng-container>
+            </option>
+          </select>
+          <span class="field-error" *ngIf="submitted && f['userId'].errors?.['required']">
+            User is required
+          </span>
+        </div>
+
+        <div class="form-group">
+          <label for="outletId">Select outlet *</label>
+          <select id="outletId" formControlName="outletId" [disabled]="!form.get('userId')?.value">
+            <option value="">
+              {{
+                !form.get('userId')?.value
+                  ? 'Select a user first'
+                  : outlets.length === 0
+                    ? 'No outlets for this user'
+                    : 'Choose an outlet'
+              }}
+            </option>
+            <option *ngFor="let outlet of outlets" [value]="outlet.id">
+              {{ outlet.businessName || outlet.id }}
+              <ng-container *ngIf="outlet.phoneNumber"> — {{ outlet.phoneNumber }}</ng-container>
+            </option>
+          </select>
+          <span class="field-error" *ngIf="submitted && f['outletId'].errors?.['required']">
+            Outlet is required
+          </span>
+        </div>
+
+        <div class="form-group">
+          <label>Select amount *</label>
+          <div class="amount-mode-tabs">
+            <button
+              type="button"
+              class="mode-btn"
+              [class.active]="amountMode === 'preset'"
+              (click)="amountMode = 'preset'"
+              [disabled]="cards.length === 0">
+              Pack amounts
+            </button>
+            <button
+              type="button"
+              class="mode-btn"
+              [class.active]="amountMode === 'custom'"
+              (click)="selectCustom()">
+              Custom amount
+            </button>
+          </div>
+
+          <div class="preset-grid" *ngIf="amountMode === 'preset'">
+            <p class="hint" *ngIf="loadingCards">Loading packs...</p>
+            <p class="hint" *ngIf="!loadingCards && cards.length === 0">No active wallet cards found.</p>
+            <button
+              type="button"
+              class="preset-chip"
+              *ngFor="let card of cards"
+              [class.selected]="selectedCardId === card.id"
+              (click)="selectPreset(card)">
+              <span class="preset-title">{{ card.title }}</span>
+              <span class="preset-amount">{{ formatAmount(card.amount) }}</span>
+              <span class="preset-bonus" *ngIf="card.bonusAmount > 0">
+                +{{ formatAmount(card.bonusAmount) }} bonus
+              </span>
+              <span class="preset-total">
+                Credits {{ formatAmount(card.amount + (card.bonusAmount || 0)) }}
+              </span>
+            </button>
+          </div>
+
+          <div *ngIf="amountMode === 'custom'" class="custom-amount">
+            <input
+              id="amount"
+              type="number"
+              formControlName="amount"
+              min="1"
+              step="1"
+              placeholder="Enter amount in ₹" />
+            <span class="field-error" *ngIf="submitted && f['amount'].errors">
+              Enter a valid amount (min ₹1)
+            </span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="description">Description *</label>
+          <textarea
+            id="description"
+            rows="2"
+            formControlName="description"
+            placeholder="Reason for credit"></textarea>
+          <span class="field-error" *ngIf="submitted && f['description'].errors?.['required']">
+            Description is required
+          </span>
+        </div>
+
+        <div class="credit-preview" *ngIf="creditPreview > 0">
+          <span>Amount to credit</span>
+          <strong>{{ formatAmount(creditPreview) }}</strong>
+        </div>
+      </div>
+
+      <div class="error-message dialog-error" *ngIf="error">{{ error }}</div>
+
+      <div class="dialog-actions">
+        <button type="button" mat-button (click)="closeDialog()">Cancel</button>
+        <button type="submit" mat-flat-button color="primary" [disabled]="loading">
+          {{ loading ? 'Adding...' : 'Add Money' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

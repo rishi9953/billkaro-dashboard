@@ -10,6 +10,7 @@ export const PAGE_URL = {
   SIGN_OUT: '/login',
   PAYMENTS: '/payments',
   ORDERS: '/orders',
+  WALLETS: '/wallets',
   WALLET_CARDS: '/wallet-cards',
   WALLET_COUPONS: '/wallet-coupons',
   PROFILE: '/profile',

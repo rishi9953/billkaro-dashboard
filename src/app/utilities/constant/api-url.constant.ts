@@ -57,6 +57,9 @@ export const API_ENDPOINTS = {
   WALLET_COUPON_UPDATE: (id: string) => `${API_BASE_URL}/wallet-coupons/${id}`,
   /** Admin outlet wallets: GET /api/wallet/admin/all */
   WALLET_ADMIN_ALL: `${API_BASE_URL}/wallet/admin/all`,
+  /** Manually credit outlet wallet: POST /api/wallet/admin/:outletId/credit */
+  WALLET_ADMIN_CREDIT: (outletId: string) =>
+    `${API_BASE_URL}/wallet/admin/${outletId}/credit`,
 };
 
 

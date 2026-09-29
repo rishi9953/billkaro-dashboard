@@ -1,0 +1,105 @@
+<div class="wallet-page">
+  <header class="page-header">
+    <div>
+      <h1 class="page-title">Wallets</h1>
+      <p class="page-subtitle">
+        View outlet wallet balances and manually add money for any user outlet.
+      </p>
+    </div>
+    <div class="header-actions">
+      <button type="button" class="btn-primary" (click)="openAddMoneyDialog()">
+        <mat-icon>add</mat-icon>
+        Add Money
+      </button>
+    </div>
+  </header>
+
+  <div *ngIf="error && !loading" class="error-banner">
+    <mat-icon>error_outline</mat-icon>
+    <p>{{ error }}</p>
+    <button type="button" class="btn-outline" (click)="fetchWallets()">Retry</button>
+  </div>
+
+  <div class="metrics-grid">
+    <div class="metric-card">
+      <div class="metric-icon purple"><mat-icon>account_balance_wallet</mat-icon></div>
+      <div>
+        <span class="metric-label">Total Wallets</span>
+        <span class="metric-value">{{ walletCount }}</span>
+      </div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-icon green"><mat-icon>payments</mat-icon></div>
+      <div>
+        <span class="metric-label">Total Balance</span>
+        <span class="metric-value">{{ formatAmount(totalBalance) }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <div class="search-box">
+      <mat-icon>search</mat-icon>
+      <input
+        type="text"
+        [(ngModel)]="searchQuery"
+        (ngModelChange)="onSearchChange()"
+        placeholder="Search by user, outlet, email, phone..." />
+    </div>
+  </div>
+
+  <div *ngIf="loading" class="loading-state">
+    <div class="spinner"></div>
+    <p>Loading wallets...</p>
+  </div>
+
+  <div *ngIf="!loading && filteredWallets.length === 0" class="empty-state">
+    <mat-icon>account_balance_wallet</mat-icon>
+    <p>{{ wallets.length === 0 ? 'No wallets yet' : 'No wallets match your search' }}</p>
+    <p class="empty-sub">
+      {{ wallets.length === 0 ? 'Add money to create an outlet wallet' : 'Try a different search' }}
+    </p>
+    <button *ngIf="wallets.length === 0" type="button" class="btn-primary" (click)="openAddMoneyDialog()">
+      <mat-icon>add</mat-icon>
+      Add Money
+    </button>
+  </div>
+
+  <div class="table-wrap" *ngIf="!loading && filteredWallets.length > 0">
+    <table class="wallets-table">
+      <thead>
+        <tr>
+          <th>User</th>
+          <th>Outlet</th>
+          <th>Balance</th>
+          <th>Updated</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let wallet of filteredWallets">
+          <td>
+            <div class="cell-main">{{ userLabel(wallet) }}</div>
+            <div class="cell-sub" *ngIf="wallet.user?.email">{{ wallet.user?.email }}</div>
+          </td>
+          <td>
+            <div class="cell-main">{{ wallet.outlet?.businessName || '—' }}</div>
+            <div class="cell-sub" *ngIf="wallet.outlet?.phoneNumber">{{ wallet.outlet?.phoneNumber }}</div>
+          </td>
+          <td class="balance">{{ formatAmount(wallet.balance) }}</td>
+          <td>{{ formatDate(wallet.updatedAt) }}</td>
+          <td class="actions">
+            <button type="button" class="btn-outline sm" (click)="openAddMoneyDialog(wallet)">
+              <mat-icon>add</mat-icon>
+              Add Money
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <button class="fab" type="button" (click)="openAddMoneyDialog()" aria-label="Add money">
+    <mat-icon>add</mat-icon>
+  </button>
+</div>
