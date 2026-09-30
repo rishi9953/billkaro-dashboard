@@ -60,6 +60,8 @@ export const API_ENDPOINTS = {
   /** Manually credit outlet wallet: POST /api/wallet/admin/:outletId/credit */
   WALLET_ADMIN_CREDIT: (outletId: string) =>
     `${API_BASE_URL}/wallet/admin/${outletId}/credit`,
+  /** Activity logs: GET /api/activities?userId=&outletId=&type=&page=&limit= */
+  ACTIVITIES: `${API_BASE_URL}/activities`,
 };
 
 

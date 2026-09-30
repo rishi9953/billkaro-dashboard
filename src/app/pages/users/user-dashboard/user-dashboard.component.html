@@ -468,15 +468,48 @@
 
     <!-- Menu -->
     <ng-container *ngIf="activeTab === 'menu'">
+      <div class="orders-filters">
+        <div class="orders-filters-row" style="border-top: none; padding-top: 0;">
+          <div class="search-box">
+            <mat-icon>search</mat-icon>
+            <input
+              type="text"
+              placeholder="Search item, category, SKU..."
+              [(ngModel)]="menuSearchQuery"
+              aria-label="Search menu items" />
+          </div>
+
+          <select
+            [(ngModel)]="menuCategoryFilter"
+            aria-label="Filter by category">
+            <option value="">All Categories</option>
+            <option *ngFor="let cat of menuCategories" [value]="cat">{{ cat }}</option>
+          </select>
+
+          <button
+            type="button"
+            class="btn-clear-filters"
+            *ngIf="hasMenuFilters"
+            (click)="clearMenuFilters()">
+            Clear filters
+          </button>
+        </div>
+      </div>
+
       <div class="section-card">
-        <div class="section-header"><h3>Menu Items</h3></div>
-        <div class="table-wrap" *ngIf="d.items.length; else noItems">
+        <div class="section-header">
+          <h3>Menu Items</h3>
+          <span class="list-meta" *ngIf="d.items.length">
+            Showing {{ filteredMenuItems.length }} of {{ d.items.length }}
+          </span>
+        </div>
+        <div class="table-wrap" *ngIf="filteredMenuItems.length; else noItems">
           <table>
             <thead>
               <tr><th>Item</th><th>Category</th><th>Price</th><th>Cost</th><th>Stock</th><th>SKU</th></tr>
             </thead>
             <tbody>
-              <tr *ngFor="let item of d.items" [class.row-warn]="item.isLowStock">
+              <tr *ngFor="let item of filteredMenuItems" [class.row-warn]="item.isLowStock">
                 <td>
                   <div class="person-cell">
                     <div class="thumb sm" [class.has-image]="hasImage(item.itemImage)" [style.background]="!hasImage(item.itemImage) ? (item.posColor || '#e2e8f0') : null">
@@ -495,28 +528,165 @@
             </tbody>
           </table>
         </div>
-        <ng-template #noItems><p class="empty-text">No menu items.</p></ng-template>
+        <ng-template #noItems>
+          <p class="empty-text">
+            {{ d.items.length ? 'No menu items match your filters.' : 'No menu items.' }}
+          </p>
+        </ng-template>
       </div>
-    </ng-container>
 
-    <!-- Activity -->
-    <ng-container *ngIf="activeTab === 'activity'">
-      <div class="section-card">
-        <div class="section-header"><h3>Recent Activity</h3></div>
-        <ul class="activity-list" *ngIf="d.recentOrders.length; else noActivity">
-          <li *ngFor="let order of d.recentOrders">
-            <div class="activity-icon"><mat-icon>receipt</mat-icon></div>
+      <div class="section-card" style="margin-top: 16px;">
+        <div class="section-header">
+          <h3>Menu Change Log</h3>
+          <button
+            type="button"
+            class="btn-clear-filters"
+            (click)="refreshLogs()"
+            [disabled]="logsLoading">
+            Refresh
+          </button>
+        </div>
+
+        <p class="empty-text" *ngIf="logsLoading">Loading change logs...</p>
+        <p class="empty-text" *ngIf="!logsLoading && logsError">{{ logsError }}</p>
+
+        <ul class="activity-list" *ngIf="!logsLoading && !logsError && menuLogs.length">
+          <li *ngFor="let log of menuLogs">
+            <div class="activity-icon"><mat-icon>{{ logIcon(log) }}</mat-icon></div>
             <div class="activity-body">
-              <strong>Bill #{{ order.billNumber }} · {{ formatCurrency(order.totalAmount) }}</strong>
-              <span>{{ order.customerName }} · {{ display(order.paymentReceivedIn) }}</span>
+              <strong>{{ logText(log) }}</strong>
+              <span>
+                {{ log.createdByName || 'Someone' }}
+                <ng-container *ngIf="log.entityName"> · {{ log.entityName }}</ng-container>
+              </span>
             </div>
             <div class="activity-meta">
-              <span class="badge" [ngClass]="statusClass(order.status)">{{ order.status }}</span>
-              <span>{{ formatDateTime(order.createdAt) }}</span>
+              <span class="badge badge-muted">{{ log.type }}</span>
+              <span>{{ formatDateTime(log.createdAt) }}</span>
             </div>
           </li>
         </ul>
-        <ng-template #noActivity><p class="empty-text">No recent activity.</p></ng-template>
+
+        <p class="empty-text" *ngIf="!logsLoading && !logsError && !menuLogs.length">
+          No menu changes logged yet.
+        </p>
+      </div>
+    </ng-container>
+
+    <!-- Logs -->
+    <ng-container *ngIf="activeTab === 'logs'">
+      <div class="orders-filters">
+        <div class="filter-tabs">
+          <button
+            *ngFor="let tab of logGroupTabs"
+            type="button"
+            class="filter-tab"
+            [class.active]="logGroupFilter === tab.key"
+            (click)="setLogGroupFilter(tab.key)">
+            {{ tab.label }} ({{ getLogGroupCount(tab.key) }})
+          </button>
+        </div>
+
+        <div class="orders-filters-row">
+          <div class="search-box">
+            <mat-icon>search</mat-icon>
+            <input
+              type="text"
+              placeholder="Search logs..."
+              [(ngModel)]="logSearchQuery"
+              (ngModelChange)="onLogSearchChange()"
+              aria-label="Search logs" />
+          </div>
+
+          <select
+            [(ngModel)]="logTypeFilter"
+            (ngModelChange)="onLogTypeFilterChange()"
+            aria-label="Filter by log type">
+            <option value="">All Types</option>
+            <option *ngFor="let type of logTypeOptions" [value]="type">{{ type }}</option>
+          </select>
+
+          <select
+            [(ngModel)]="logActorFilter"
+            (ngModelChange)="onLogActorFilterChange()"
+            aria-label="Filter by user">
+            <option value="">All Users</option>
+            <option *ngFor="let actor of logActorOptions" [value]="actor">{{ actor }}</option>
+          </select>
+
+          <input
+            type="date"
+            [(ngModel)]="logStartDate"
+            (ngModelChange)="onLogDateChange()"
+            aria-label="From date"
+            title="From date" />
+
+          <input
+            type="date"
+            [(ngModel)]="logEndDate"
+            (ngModelChange)="onLogDateChange()"
+            aria-label="To date"
+            title="To date" />
+
+          <button
+            type="button"
+            class="btn-clear-filters"
+            *ngIf="hasLogFilters"
+            (click)="clearLogFilters()">
+            Clear filters
+          </button>
+
+          <button
+            type="button"
+            class="btn-clear-filters"
+            (click)="refreshLogs()"
+            [disabled]="logsLoading">
+            Refresh
+          </button>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-header">
+          <h3>All Logs</h3>
+          <span class="list-meta" *ngIf="allLogs.length">
+            Showing {{ filteredLogs.length }} of {{ allLogs.length }}
+          </span>
+        </div>
+
+        <p class="empty-text" *ngIf="logsLoading">Loading logs...</p>
+        <p class="empty-text" *ngIf="!logsLoading && logsError">{{ logsError }}</p>
+
+        <ul class="activity-list" *ngIf="!logsLoading && !logsError && filteredLogs.length">
+          <li *ngFor="let log of pagedLogs">
+            <div class="activity-icon"><mat-icon>{{ logIcon(log) }}</mat-icon></div>
+            <div class="activity-body">
+              <strong>{{ logText(log) }}</strong>
+              <span>
+                {{ log.createdByName || 'Someone' }}
+                <ng-container *ngIf="log.entityName"> · {{ log.entityName }}</ng-container>
+              </span>
+            </div>
+            <div class="activity-meta">
+              <span class="badge badge-muted">{{ log.type }}</span>
+              <span>{{ formatDateTime(log.createdAt) }}</span>
+            </div>
+          </li>
+        </ul>
+
+        <div class="table-footer" *ngIf="!logsLoading && !logsError && filteredLogs.length">
+          <p>Showing {{ logShowingFrom }} to {{ logShowingTo }} of {{ filteredLogs.length }} entries</p>
+          <app-number-paginator
+            [length]="filteredLogs.length"
+            [pageSize]="logPageSize"
+            [pageIndex]="logPageIndex"
+            (pageChange)="onLogPageChange($event)">
+          </app-number-paginator>
+        </div>
+
+        <p class="empty-text" *ngIf="!logsLoading && !logsError && !filteredLogs.length">
+          {{ allLogs.length ? 'No logs match your filters.' : 'No logs yet.' }}
+        </p>
       </div>
     </ng-container>
   </ng-container>

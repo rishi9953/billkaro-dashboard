@@ -20,7 +20,33 @@ import { NumberPaginatorComponent } from '../../../shared/components/number-pagi
 
 Chart.register(...registerables);
 
-type DashboardTab = 'overview' | 'profile' | 'orders' | 'staff' | 'inventory' | 'menu' | 'activity';
+type DashboardTab = 'overview' | 'profile' | 'orders' | 'staff' | 'inventory' | 'menu' | 'logs';
+type LogGroup = 'all' | 'menu' | 'orders' | 'staff' | 'customers' | 'store' | 'whatsapp';
+
+interface ActivityLog {
+  id: string;
+  type: string;
+  createdByName?: string;
+  entityName?: string | null;
+  description?: string | null;
+  details?: {
+    fieldChanges?: { field: string; label: string; from: string | number; to: string | number }[];
+    changeSummary?: string | null;
+    changes?: Record<string, unknown>;
+    showItemToggled?: boolean;
+    action?: string;
+  } | null;
+  createdAt: string;
+}
+
+const LOG_GROUP_TYPES: Record<Exclude<LogGroup, 'all'>, string[]> = {
+  menu: ['Item Added', 'Item Edited', 'Item Deleted'],
+  orders: ['Order Added', 'Order Deleted'],
+  staff: ['Staff Added', 'Staff Updated', 'Staff Deleted'],
+  customers: ['Customer Added', 'Customer Edited', 'Customer Deleted'],
+  store: ['Store Opened', 'Store Closed'],
+  whatsapp: ['WhatsApp Campaign Sent'],
+};
 
 interface UserProfile {
   id: string;
@@ -242,7 +268,7 @@ export class UserDashboardComponent implements OnInit, AfterViewInit, OnDestroy 
     { key: 'staff', label: 'Staff', icon: 'badge' },
     { key: 'inventory', label: 'Inventory', icon: 'inventory_2' },
     { key: 'menu', label: 'Menu', icon: 'restaurant_menu' },
-    { key: 'activity', label: 'Activity Log', icon: 'history' },
+    { key: 'logs', label: 'Logs', icon: 'history' },
   ];
 
   loading = true;
@@ -262,6 +288,33 @@ export class UserDashboardComponent implements OnInit, AfterViewInit, OnDestroy 
   orderPaymentFilter = '';
   orderPageIndex = 0;
   readonly orderPageSize = 20;
+
+  /** Menu tab filters */
+  menuSearchQuery = '';
+  menuCategoryFilter = '';
+
+  /** Logs tab (shared activity feed) */
+  readonly logGroupTabs: { key: LogGroup; label: string }[] = [
+    { key: 'all', label: 'All' },
+    { key: 'menu', label: 'Menu' },
+    { key: 'orders', label: 'Orders' },
+    { key: 'staff', label: 'Staff' },
+    { key: 'customers', label: 'Customers' },
+    { key: 'store', label: 'Store' },
+    { key: 'whatsapp', label: 'WhatsApp' },
+  ];
+  allLogs: ActivityLog[] = [];
+  logsLoading = false;
+  logsError: string | null = null;
+  logsLoadedFor = '';
+  logGroupFilter: LogGroup = 'all';
+  logTypeFilter = '';
+  logActorFilter = '';
+  logStartDate = '';
+  logEndDate = '';
+  logSearchQuery = '';
+  logPageIndex = 0;
+  readonly logPageSize = 20;
 
   /** Track broken image URLs so placeholders show cleanly */
   failedImages = new Set<string>();
@@ -289,7 +342,8 @@ export class UserDashboardComponent implements OnInit, AfterViewInit, OnDestroy 
     });
 
     this.route.queryParamMap.pipe(takeUntil(this.destroy$)).subscribe((params) => {
-      const tab = params.get('tab') as DashboardTab | null;
+      let tab = params.get('tab') as DashboardTab | 'activity' | null;
+      if (tab === 'activity') tab = 'logs';
       if (tab && this.tabs.some((t) => t.key === tab)) {
         this.activeTab = tab;
       }
@@ -327,10 +381,17 @@ export class UserDashboardComponent implements OnInit, AfterViewInit, OnDestroy 
           this.data = payload;
           this.selectedOutletId = payload.selectedOutletId ?? '';
           this.resetOrderFilters();
+          this.resetMenuFilters();
+          this.resetLogFilters();
+          this.allLogs = [];
+          this.logsLoadedFor = '';
           this.loading = false;
           this.cdr.detectChanges();
           if (this.activeTab === 'overview') {
             setTimeout(() => this.initCharts(), 0);
+          }
+          if (this.activeTab === 'menu' || this.activeTab === 'logs') {
+            this.fetchLogs();
           }
         },
         error: (err) => {
@@ -357,6 +418,9 @@ export class UserDashboardComponent implements OnInit, AfterViewInit, OnDestroy 
       setTimeout(() => this.initCharts(), 0);
     } else {
       this.destroyCharts();
+    }
+    if (tab === 'menu' || tab === 'logs') {
+      this.fetchLogs();
     }
   }
 
@@ -461,6 +525,300 @@ export class UserDashboardComponent implements OnInit, AfterViewInit, OnDestroy 
     this.orderSearchQuery = '';
     this.orderPaymentFilter = '';
     this.orderPageIndex = 0;
+  }
+
+  clearMenuFilters(): void {
+    this.resetMenuFilters();
+  }
+
+  private resetMenuFilters(): void {
+    this.menuSearchQuery = '';
+    this.menuCategoryFilter = '';
+  }
+
+  get menuCategories(): string[] {
+    const cats = new Set<string>();
+    (this.data?.items ?? []).forEach((item) => {
+      const cat = (item.category || '').trim();
+      if (cat) cats.add(cat);
+    });
+    return Array.from(cats).sort((a, b) => a.localeCompare(b));
+  }
+
+  get filteredMenuItems(): ItemRow[] {
+    const items = this.data?.items ?? [];
+    const q = this.menuSearchQuery.trim().toLowerCase();
+    return items.filter((item) => {
+      if (
+        this.menuCategoryFilter &&
+        (item.category || '').trim() !== this.menuCategoryFilter
+      ) {
+        return false;
+      }
+      if (!q) return true;
+      const haystack = [item.itemName, item.category, item.sku, item.barcode]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      return haystack.includes(q);
+    });
+  }
+
+  get hasMenuFilters(): boolean {
+    return !!(this.menuSearchQuery.trim() || this.menuCategoryFilter);
+  }
+
+  get menuLogs(): ActivityLog[] {
+    return this.allLogs.filter((a) => LOG_GROUP_TYPES.menu.includes(a.type));
+  }
+
+  get filteredLogs(): ActivityLog[] {
+    const q = this.logSearchQuery.trim().toLowerCase();
+    return this.allLogs.filter((log) => {
+      if (this.logGroupFilter !== 'all') {
+        const types = LOG_GROUP_TYPES[this.logGroupFilter];
+        if (!types.includes(log.type)) return false;
+      }
+      if (this.logTypeFilter && log.type !== this.logTypeFilter) return false;
+      if (
+        this.logActorFilter &&
+        (log.createdByName || '').trim() !== this.logActorFilter
+      ) {
+        return false;
+      }
+      if (!q) return true;
+      const haystack = [
+        log.type,
+        log.description,
+        log.entityName,
+        log.createdByName,
+        log.details?.changeSummary,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      return haystack.includes(q);
+    });
+  }
+
+  get pagedLogs(): ActivityLog[] {
+    const filtered = this.filteredLogs;
+    const maxPage = Math.max(0, Math.ceil(filtered.length / this.logPageSize) - 1);
+    const page = Math.min(this.logPageIndex, maxPage);
+    const start = page * this.logPageSize;
+    return filtered.slice(start, start + this.logPageSize);
+  }
+
+  get logShowingFrom(): number {
+    if (!this.filteredLogs.length) return 0;
+    return this.logPageIndex * this.logPageSize + 1;
+  }
+
+  get logShowingTo(): number {
+    return Math.min(
+      (this.logPageIndex + 1) * this.logPageSize,
+      this.filteredLogs.length,
+    );
+  }
+
+  get logTypeOptions(): string[] {
+    if (this.logGroupFilter === 'all') {
+      return Object.values(LOG_GROUP_TYPES).flat();
+    }
+    return LOG_GROUP_TYPES[this.logGroupFilter];
+  }
+
+  get logActorOptions(): string[] {
+    const names = new Set<string>();
+    this.allLogs.forEach((log) => {
+      const name = (log.createdByName || '').trim();
+      if (name) names.add(name);
+    });
+    return Array.from(names).sort((a, b) => a.localeCompare(b));
+  }
+
+  get hasLogFilters(): boolean {
+    return (
+      this.logGroupFilter !== 'all' ||
+      !!this.logTypeFilter ||
+      !!this.logActorFilter ||
+      !!this.logStartDate ||
+      !!this.logEndDate ||
+      !!this.logSearchQuery.trim()
+    );
+  }
+
+  getLogGroupCount(key: LogGroup): number {
+    if (key === 'all') return this.allLogs.length;
+    const types = LOG_GROUP_TYPES[key];
+    return this.allLogs.filter((a) => types.includes(a.type)).length;
+  }
+
+  setLogGroupFilter(key: LogGroup): void {
+    this.logGroupFilter = key;
+    if (this.logTypeFilter && !this.logTypeOptions.includes(this.logTypeFilter)) {
+      this.logTypeFilter = '';
+    }
+    this.logPageIndex = 0;
+  }
+
+  onLogTypeFilterChange(): void {
+    this.logPageIndex = 0;
+  }
+
+  onLogActorFilterChange(): void {
+    this.logPageIndex = 0;
+  }
+
+  onLogSearchChange(): void {
+    this.logPageIndex = 0;
+  }
+
+  onLogDateChange(): void {
+    this.logPageIndex = 0;
+    this.fetchLogs(true);
+  }
+
+  onLogPageChange(pageIndex: number): void {
+    this.logPageIndex = pageIndex;
+  }
+
+  clearLogFilters(): void {
+    const hadDateFilter = !!(this.logStartDate || this.logEndDate);
+    this.resetLogFilters();
+    if (hadDateFilter) this.fetchLogs(true);
+  }
+
+  private resetLogFilters(): void {
+    this.logGroupFilter = 'all';
+    this.logTypeFilter = '';
+    this.logActorFilter = '';
+    this.logStartDate = '';
+    this.logEndDate = '';
+    this.logSearchQuery = '';
+    this.logPageIndex = 0;
+  }
+
+  fetchLogs(force = false): void {
+    if (!this.userId) return;
+    const outletId = this.selectedOutletId || this.data?.selectedOutletId || '';
+    const cacheKey = [
+      this.userId,
+      outletId,
+      this.logStartDate || '',
+      this.logEndDate || '',
+    ].join('|');
+    if (!force && (this.logsLoading || this.logsLoadedFor === cacheKey)) return;
+
+    this.logsLoading = true;
+    this.logsError = null;
+    const params = new URLSearchParams({
+      userId: this.userId,
+      limit: '200',
+      page: '1',
+    });
+    if (outletId) params.set('outletId', outletId);
+    if (this.logStartDate) params.set('startDate', this.logStartDate);
+    if (this.logEndDate) params.set('endDate', this.logEndDate);
+
+    this.http
+      .get<{ status?: string; data?: ActivityLog[] } | ActivityLog[]>(
+        `${API_ENDPOINTS.ACTIVITIES}?${params.toString()}`,
+      )
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (res) => {
+          this.allLogs = Array.isArray(res)
+            ? res
+            : Array.isArray(res?.data)
+              ? res.data
+              : [];
+          this.logsLoadedFor = cacheKey;
+          this.logsLoading = false;
+          this.cdr.detectChanges();
+        },
+        error: (err) => {
+          this.allLogs = [];
+          this.logsLoading = false;
+          this.logsError =
+            err?.error?.message || err?.message || 'Failed to load logs.';
+          this.cdr.detectChanges();
+        },
+      });
+  }
+
+  refreshLogs(): void {
+    this.fetchLogs(true);
+  }
+
+  logText(log: ActivityLog): string {
+    const summary = log.details?.changeSummary?.trim();
+    if (summary) return summary;
+
+    const changes = log.details?.fieldChanges;
+    if (changes?.length) {
+      return changes
+        .map((c) => {
+          if (c.field === 'salePrice' || c.field === 'costPrice') {
+            return `${c.label} changed from ₹${c.from} to ₹${c.to}`;
+          }
+          return `${c.label} changed from "${c.from}" to "${c.to}"`;
+        })
+        .join('; ');
+    }
+
+    const patch = log.details?.changes;
+    if (patch && typeof patch === 'object') {
+      const parts: string[] = [];
+      if (patch['itemName'] != null) {
+        parts.push(`Item name changed to "${String(patch['itemName'])}"`);
+      }
+      if (patch['salePrice'] != null) {
+        parts.push(`Price changed to ₹${patch['salePrice']}`);
+      }
+      if (patch['costPrice'] != null) {
+        parts.push(`Cost price changed to ₹${patch['costPrice']}`);
+      }
+      if (patch['category'] != null) {
+        parts.push(`Category changed to "${String(patch['category'])}"`);
+      }
+      if (log.details?.showItemToggled && log.details?.action) {
+        parts.push(`Item ${log.details.action}`);
+      }
+      if (parts.length) return parts.join('; ');
+    }
+
+    if (log.description?.trim()) return log.description.trim();
+
+    if (log.entityName) return `${log.type}: "${log.entityName}"`;
+    return log.type || 'Activity';
+  }
+
+  logIcon(log: ActivityLog): string {
+    switch (log.type) {
+      case 'Item Added':
+      case 'Order Added':
+      case 'Customer Added':
+      case 'Staff Added':
+        return 'add_circle';
+      case 'Item Deleted':
+      case 'Order Deleted':
+      case 'Customer Deleted':
+      case 'Staff Deleted':
+        return 'delete';
+      case 'Item Edited':
+      case 'Customer Edited':
+      case 'Staff Updated':
+        return 'edit';
+      case 'Store Opened':
+        return 'storefront';
+      case 'Store Closed':
+        return 'store';
+      case 'WhatsApp Campaign Sent':
+        return 'chat';
+      default:
+        return 'history';
+    }
   }
 
   get fullName(): string {

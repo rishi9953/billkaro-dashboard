@@ -834,6 +834,16 @@
   cursor: pointer;
 }
 
+.orders-filters-row input[type='date'] {
+  padding: 8px 12px;
+  border: 1px solid var(--app-border);
+  border-radius: 10px;
+  background: var(--app-bg-page);
+  color: var(--app-text-primary);
+  font-size: 13px;
+  font-weight: 500;
+}
+
 .btn-clear-filters {
   border: 1px solid var(--app-border);
   background: transparent;
